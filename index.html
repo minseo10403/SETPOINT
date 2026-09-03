@@ -1,165 +1,4774 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <title>Setpoint: Unit-7</title>
-    <style>
-        body { background-color: #121212; color: #00ffcc; font-family: 'Courier New', Courier, monospace; text-align: center; margin-top: 30px; }
-        h1 { margin-bottom: 5px; color: #ffeb3b; }
-        .story { color: #888; font-size: 14px; margin-bottom: 20px; }
-        #avatar { font-size: 80px; margin: 10px 0; transition: transform 0.2s; }
-        .timer-box { font-size: 20px; font-weight: bold; color: #fff; margin-bottom: 20px; }
-        
-        .dashboard { display: flex; justify-content: center; gap: 30px; margin-bottom: 30px; }
-        .stat-box { border: 2px solid #333; padding: 20px; border-radius: 10px; width: 200px; background: #1e1e1e; position: relative; }
-        .bar-bg { width: 100%; height: 20px; background: #444; margin-top: 10px; border-radius: 5px; overflow: hidden; }
-        .bar-fill { height: 100%; width: 50%; transition: width 0.3s; }
-        
-        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 450px; margin: 0 auto; }
-        button { background: #00ffcc; color: #121212; border: none; padding: 15px; cursor: pointer; font-weight: bold; border-radius: 5px; font-size: 14px; }
-        button:active { background: #00b38f; transform: scale(0.98); }
-        button:disabled { background: #555; color: #222; cursor: not-allowed; }
-        
-        #log { margin-top: 30px; font-size: 18px; font-weight: bold; color: #ff5555; height: 30px; }
-        #event-log { color: #ffeb3b; height: 20px; margin-top: 10px; font-style: italic; }
-        
-        .shake { animation: shake 0.5s infinite; border-color: red !important; }
-        @keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 100% { transform: translate(-1px, -2px) rotate(-1deg); } }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    name="description"
+    content="혈당, 체온, 삼투압을 실시간으로 조절하는 생명과학 항상성 게임 Setpoint"
+  />
+
+  <title>Setpoint | Homeostasis Command</title>
+
+  <style>
+    :root {
+      --bg: #06101c;
+      --panel: rgba(12, 29, 48, 0.92);
+      --panel-2: rgba(17, 40, 65, 0.78);
+      --line: rgba(133, 224, 255, 0.2);
+
+      --text: #eefbff;
+      --muted: #9bb3c4;
+
+      --cyan: #69e6f1;
+      --blue: #6c88ff;
+      --green: #58e39a;
+      --yellow: #ffd166;
+      --orange: #ff9d5c;
+      --red: #ff5d73;
+
+      --shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+
+      font-family:
+        Inter,
+        Pretendard,
+        "Noto Sans KR",
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+
+      background:
+        radial-gradient(
+          circle at 12% 5%,
+          rgba(58, 155, 255, 0.19),
+          transparent 28rem
+        ),
+        radial-gradient(
+          circle at 88% 25%,
+          rgba(80, 236, 196, 0.12),
+          transparent 25rem
+        ),
+        linear-gradient(145deg, #030910, var(--bg) 55%, #07182b);
+
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+
+      pointer-events: none;
+      opacity: 0.13;
+
+      background-image:
+        linear-gradient(
+          rgba(102, 218, 255, 0.16) 1px,
+          transparent 1px
+        ),
+        linear-gradient(
+          90deg,
+          rgba(102, 218, 255, 0.16) 1px,
+          transparent 1px
+        );
+
+      background-size: 36px 36px;
+      mask-image: linear-gradient(to bottom, black, transparent 92%);
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    button {
+      color: inherit;
+    }
+
+    .app {
+      width: min(1500px, calc(100% - 28px));
+      margin: 14px auto 26px;
+
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+
+      background:
+        linear-gradient(
+          145deg,
+          var(--panel),
+          rgba(7, 22, 38, 0.92)
+        );
+
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    /* ─────────────────────────────────────────
+       상단 헤더
+    ───────────────────────────────────────── */
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 22px;
+
+      align-items: center;
+      padding: 18px 22px;
+    }
+
+    .brand {
+      display: flex;
+      gap: 13px;
+      align-items: center;
+    }
+
+    .brand-mark {
+      width: 50px;
+      height: 50px;
+
+      border-radius: 15px;
+
+      display: grid;
+      place-items: center;
+
+      font-weight: 900;
+      color: #06101c;
+
+      background:
+        linear-gradient(
+          135deg,
+          var(--cyan),
+          #a9fff5
+        );
+
+      box-shadow:
+        0 0 28px rgba(105, 230, 241, 0.28);
+    }
+
+    .eyebrow {
+      margin: 0 0 3px;
+
+      color: var(--cyan);
+
+      font-size: 0.71rem;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin-bottom: 2px;
+
+      font-size: clamp(1.65rem, 3vw, 2.35rem);
+      line-height: 1;
+    }
+
+    .subtitle {
+      margin: 0;
+
+      color: var(--muted);
+      font-size: 0.89rem;
+    }
+
+    .mission-stats {
+      display: flex;
+      gap: 8px;
+
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .mission-stat {
+      min-width: 92px;
+      padding: 9px 12px;
+
+      text-align: center;
+
+      border:
+        1px solid rgba(148, 226, 255, 0.13);
+
+      border-radius: 13px;
+
+      background:
+        rgba(114, 202, 255, 0.06);
+    }
+
+    .mission-stat span {
+      display: block;
+
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
+
+    .mission-stat strong {
+      display: block;
+      margin-top: 2px;
+
+      font-size: 1.16rem;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .small-btn,
+    .primary-btn,
+    .secondary-btn {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+
+      cursor: pointer;
+
+      transition:
+        transform 0.15s ease,
+        border-color 0.15s ease,
+        background 0.15s ease;
+    }
+
+    .small-btn:hover,
+    .primary-btn:hover,
+    .secondary-btn:hover {
+      transform: translateY(-1px);
+
+      border-color:
+        rgba(116, 235, 255, 0.55);
+    }
+
+    .small-btn {
+      min-height: 42px;
+      padding: 9px 13px;
+
+      background:
+        rgba(95, 200, 244, 0.09);
+    }
+
+    .small-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ─────────────────────────────────────────
+       상단 자원 표시
+    ───────────────────────────────────────── */
+
+    .resource-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+
+      margin: 12px 0;
+    }
+
+    .resource {
+      padding: 14px 16px;
+    }
+
+    .resource-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+
+      margin-bottom: 9px;
+    }
+
+    .resource-head span {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .resource-head strong {
+      font-size: 1.04rem;
+    }
+
+    .track {
+      height: 9px;
+
+      border-radius: 99px;
+
+      background:
+        rgba(255, 255, 255, 0.07);
+
+      overflow: hidden;
+
+      border:
+        1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .fill {
+      height: 100%;
+      width: 0;
+
+      border-radius: inherit;
+
+      transition:
+        width 0.15s linear,
+        background 0.2s ease;
+    }
+
+    #stabilityFill {
+      background:
+        linear-gradient(
+          90deg,
+          var(--green),
+          var(--cyan)
+        );
+    }
+
+    #energyFill {
+      background:
+        linear-gradient(
+          90deg,
+          var(--blue),
+          var(--cyan)
+        );
+    }
+
+    #totalLoadFill {
+      background:
+        linear-gradient(
+          90deg,
+          var(--yellow),
+          var(--red)
+        );
+    }
+
+    /* ─────────────────────────────────────────
+       메인 레이아웃
+    ───────────────────────────────────────── */
+
+    .layout {
+      display: grid;
+
+      grid-template-columns:
+        minmax(250px, 0.8fr)
+        minmax(480px, 1.5fr)
+        minmax(320px, 1fr);
+
+      gap: 12px;
+      align-items: start;
+    }
+
+    .section {
+      padding: 17px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+
+      margin-bottom: 14px;
+    }
+
+    .section-title h2 {
+      margin: 0;
+      font-size: 1.08rem;
+    }
+
+    .section-title p {
+      margin: 0 0 4px;
+    }
+
+    .chip {
+      flex: none;
+
+      padding: 6px 9px;
+
+      border-radius: 999px;
+
+      color: var(--cyan);
+
+      background:
+        rgba(105, 230, 241, 0.09);
+
+      border:
+        1px solid rgba(105, 230, 241, 0.21);
+
+      font-size: 0.72rem;
+      font-weight: 800;
+    }
+
+    /* ─────────────────────────────────────────
+       외부 사건 패널
+    ───────────────────────────────────────── */
+
+    .event-card {
+      min-height: 205px;
+      padding: 17px;
+
+      border-radius: 17px;
+
+      border:
+        1px solid rgba(133, 224, 255, 0.16);
+
+      background:
+        radial-gradient(
+          circle at 0 0,
+          rgba(105, 230, 241, 0.1),
+          transparent 50%
+        ),
+        rgba(255, 255, 255, 0.025);
+
+      transition:
+        border-color 0.2s ease,
+        transform 0.2s ease;
+    }
+
+    .event-card.warning {
+      border-color:
+        rgba(255, 209, 102, 0.65);
+
+      animation:
+        warnPulse 1s infinite alternate;
+    }
+
+    .event-card.active {
+      border-color:
+        rgba(255, 93, 115, 0.62);
+    }
+
+    @keyframes warnPulse {
+      from {
+        box-shadow:
+          0 0 0 rgba(255, 209, 102, 0);
+      }
+
+      to {
+        box-shadow:
+          0 0 24px rgba(255, 209, 102, 0.12);
+      }
+    }
+
+    .event-icon {
+      margin-bottom: 8px;
+      font-size: 2.1rem;
+    }
+
+    .event-label {
+      color: var(--yellow);
+
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+    }
+
+    .event-card h3 {
+      margin: 5px 0 7px;
+      font-size: 1.08rem;
+    }
+
+    .event-card p {
+      margin-bottom: 14px;
+
+      color: var(--muted);
+
+      font-size: 0.86rem;
+      line-height: 1.55;
+    }
+
+    .event-count {
+      display: flex;
+      justify-content: space-between;
+
+      margin-bottom: 6px;
+
+      color: var(--muted);
+      font-size: 0.76rem;
+    }
+
+    .event-count strong {
+      color: var(--text);
+    }
+
+    .active-list {
+      margin-top: 12px;
+
+      display: grid;
+      gap: 7px;
+    }
+
+    .active-event {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+
+      padding: 9px 10px;
+
+      border-radius: 11px;
+
+      font-size: 0.78rem;
+
+      background:
+        rgba(255, 93, 115, 0.08);
+
+      border:
+        1px solid rgba(255, 93, 115, 0.18);
+    }
+
+    .empty {
+      color: var(--muted);
+      font-size: 0.79rem;
+      line-height: 1.5;
+    }
+
+    /* ─────────────────────────────────────────
+       생체 수치 카드
+    ───────────────────────────────────────── */
+
+    .vitals {
+      display: grid;
+      gap: 11px;
+    }
+
+    .vital {
+      padding: 15px;
+
+      border-radius: 17px;
+
+      border:
+        1px solid rgba(133, 224, 255, 0.15);
+
+      background: var(--panel-2);
+
+      transition:
+        border-color 0.2s,
+        transform 0.2s,
+        box-shadow 0.2s;
+    }
+
+    .vital.high,
+    .vital.low {
+      border-color:
+        rgba(255, 209, 102, 0.52);
+    }
+
+    .vital.critical {
+      border-color:
+        rgba(255, 93, 115, 0.75);
+
+      box-shadow:
+        inset 0 0 32px
+        rgba(255, 93, 115, 0.08);
+    }
+
+    .vital-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .vital-name {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+
+      font-weight: 800;
+    }
+
+    .vital-icon {
+      width: 30px;
+      height: 30px;
+
+      display: grid;
+      place-items: center;
+
+      border-radius: 10px;
+
+      color: var(--cyan);
+
+      background:
+        rgba(105, 230, 241, 0.1);
+    }
+
+    .vital-state {
+      color: var(--green);
+      font-size: 0.75rem;
+      font-weight: 800;
+    }
+
+    .vital-state.warn {
+      color: var(--yellow);
+    }
+
+    .vital-state.danger {
+      color: var(--red);
+    }
+
+    .reading {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+
+      margin: 10px 0 8px;
+    }
+
+    .reading strong {
+      font-size:
+        clamp(1.9rem, 4vw, 2.65rem);
+
+      letter-spacing: -0.04em;
+    }
+
+    .reading span {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .trend {
+      margin-left: auto;
+
+      font-size: 0.8rem;
+      font-weight: 800;
+    }
+
+    .gauge {
+      height: 13px;
+
+      position: relative;
+
+      border-radius: 99px;
+
+      background:
+        linear-gradient(
+          90deg,
+          rgba(255, 93, 115, 0.5),
+          rgba(255, 209, 102, 0.42) 25%,
+          rgba(88, 227, 154, 0.46) 42%,
+          rgba(88, 227, 154, 0.46) 60%,
+          rgba(255, 209, 102, 0.42) 76%,
+          rgba(255, 93, 115, 0.5)
+        );
+
+      border:
+        1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .marker {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+
+      width: 4px;
+      height: 21px;
+
+      border-radius: 4px;
+
+      background: white;
+
+      transform:
+        translate(-50%, -50%);
+
+      box-shadow:
+        0 0 12px rgba(255, 255, 255, 0.8);
+
+      transition:
+        left 0.18s linear;
+    }
+
+    .range-labels {
+      display: flex;
+      justify-content: space-between;
+
+      margin-top: 6px;
+
+      color: var(--muted);
+      font-size: 0.68rem;
+    }
+
+    .vital-note {
+      margin: 10px 0 0;
+
+      color: var(--muted);
+
+      font-size: 0.77rem;
+      line-height: 1.5;
+    }
+
+    /* ─────────────────────────────────────────
+       피드백 부하 및 조작 버튼
+    ───────────────────────────────────────── */
+
+    .feedback-grid {
+      display: grid;
+      gap: 9px;
+
+      margin-bottom: 14px;
+    }
+
+    .axis-load {
+      padding: 11px 12px;
+
+      border-radius: 13px;
+
+      background:
+        rgba(255, 255, 255, 0.027);
+
+      border:
+        1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .axis-head {
+      display: flex;
+      justify-content: space-between;
+
+      margin-bottom: 7px;
+
+      font-size: 0.78rem;
+    }
+
+    .axis-head span {
+      color: var(--muted);
+    }
+
+    .axis-fill {
+      background:
+        linear-gradient(
+          90deg,
+          var(--cyan),
+          var(--yellow),
+          var(--red)
+        );
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .control-btn {
+      min-height: 102px;
+      padding: 11px;
+
+      text-align: left;
+
+      position: relative;
+      overflow: hidden;
+
+      border:
+        1px solid rgba(133, 224, 255, 0.16);
+
+      border-radius: 15px;
+
+      color: var(--text);
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(76, 155, 219, 0.11),
+          rgba(7, 18, 31, 0.72)
+        );
+
+      cursor: pointer;
+
+      transition:
+        transform 0.12s ease,
+        border-color 0.12s ease,
+        background 0.12s ease;
+    }
+
+    .control-btn:hover {
+      transform: translateY(-2px);
+
+      border-color:
+        rgba(105, 230, 241, 0.55);
+    }
+
+    .control-btn:active {
+      transform:
+        translateY(0) scale(0.985);
+    }
+
+    .control-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .control-key {
+      position: absolute;
+      top: 9px;
+      right: 9px;
+
+      width: 25px;
+      height: 25px;
+
+      display: grid;
+      place-items: center;
+
+      border-radius: 8px;
+
+      color: var(--cyan);
+
+      font-size: 0.72rem;
+      font-weight: 900;
+
+      background:
+        rgba(105, 230, 241, 0.09);
+
+      border:
+        1px solid rgba(105, 230, 241, 0.18);
+    }
+
+    .control-btn strong {
+      display: block;
+
+      padding-right: 24px;
+
+      font-size: 0.86rem;
+    }
+
+    .control-btn small {
+      display: block;
+
+      min-height: 30px;
+      margin: 5px 0 8px;
+
+      color: var(--muted);
+
+      font-size: 0.68rem;
+      line-height: 1.35;
+    }
+
+    .dose-track {
+      height: 5px;
+
+      border-radius: 9px;
+
+      background:
+        rgba(255, 255, 255, 0.08);
+
+      overflow: hidden;
+    }
+
+    .dose-fill {
+      height: 100%;
+      width: 0;
+
+      border-radius: inherit;
+
+      background:
+        linear-gradient(
+          90deg,
+          var(--cyan),
+          var(--blue)
+        );
+
+      transition:
+        width 0.15s linear;
+    }
+
+    .tip {
+      margin: 12px 0 0;
+      padding: 10px 11px;
+
+      color: var(--muted);
+
+      font-size: 0.73rem;
+      line-height: 1.5;
+
+      border-radius: 12px;
+
+      background:
+        rgba(255, 209, 102, 0.06);
+
+      border:
+        1px solid rgba(255, 209, 102, 0.16);
+    }
+
+    /* ─────────────────────────────────────────
+       관제 기록
+    ───────────────────────────────────────── */
+
+    .log-panel {
+      margin-top: 12px;
+      padding: 15px 17px;
+    }
+
+    .log-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      margin-bottom: 9px;
+    }
+
+    .log-head h2 {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    .log {
+      list-style: none;
+
+      padding: 0;
+      margin: 0;
+
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+    }
+
+    .log li {
+      min-height: 42px;
+      padding: 8px 10px;
+
+      border-radius: 10px;
+
+      color: var(--muted);
+
+      background:
+        rgba(255, 255, 255, 0.025);
+
+      border:
+        1px solid rgba(255, 255, 255, 0.055);
+
+      font-size: 0.72rem;
+      line-height: 1.45;
+    }
+
+    .log time {
+      margin-right: 5px;
+
+      color: var(--cyan);
+
+      font-weight: 800;
+    }
+
+    .log .danger-log {
+      color: #ff9aab;
+    }
+
+    .log .good-log {
+      color: #8af0ba;
+    }
+
+    /* ─────────────────────────────────────────
+       알림 메시지
+    ───────────────────────────────────────── */
+
+    .toast-stack {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+
+      width:
+        min(340px, calc(100vw - 36px));
+
+      display: grid;
+      gap: 8px;
+
+      z-index: 30;
+    }
+
+    .toast {
+      padding: 11px 13px;
+
+      border-radius: 12px;
+
+      background:
+        rgba(8, 24, 41, 0.96);
+
+      border: 1px solid var(--line);
+
+      box-shadow: var(--shadow);
+
+      font-size: 0.78rem;
+
+      animation:
+        toastIn 0.2s ease;
+    }
+
+    .toast.good {
+      border-color:
+        rgba(88, 227, 154, 0.5);
+    }
+
+    .toast.bad {
+      border-color:
+        rgba(255, 93, 115, 0.55);
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+    }
+
+    /* ─────────────────────────────────────────
+       모달
+    ───────────────────────────────────────── */
+
+    .modal {
+      position: fixed;
+      inset: 0;
+
+      z-index: 50;
+
+      display: grid;
+      place-items: center;
+
+      padding: 18px;
+
+      background:
+        rgba(1, 7, 13, 0.82);
+
+      backdrop-filter: blur(12px);
+    }
+
+    .modal.hidden {
+      display: none;
+    }
+
+    .modal-card {
+      width: min(720px, 100%);
+
+      max-height:
+        calc(100vh - 36px);
+
+      overflow: auto;
+
+      padding:
+        clamp(22px, 5vw, 38px);
+
+      border-radius: 24px;
+
+      border:
+        1px solid rgba(105, 230, 241, 0.25);
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(14, 35, 58, 0.98),
+          rgba(4, 15, 27, 0.99)
+        );
+
+      box-shadow:
+        0 30px 100px rgba(0, 0, 0, 0.55);
+    }
+
+    .modal-card h2 {
+      margin-bottom: 8px;
+
+      font-size:
+        clamp(1.65rem, 5vw, 2.45rem);
+    }
+
+    .modal-card > p {
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .intro-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 9px;
+
+      margin: 18px 0;
+    }
+
+    .intro-item {
+      padding: 13px;
+
+      border-radius: 14px;
+
+      background:
+        rgba(255, 255, 255, 0.035);
+
+      border:
+        1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .intro-item strong {
+      display: block;
+      margin-bottom: 5px;
+
+      font-size: 0.86rem;
+    }
+
+    .intro-item span {
+      color: var(--muted);
+
+      font-size: 0.75rem;
+      line-height: 1.45;
+    }
+
+    .settings {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+
+      margin: 15px 0 20px;
+    }
+
+    .settings label {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    select {
+      padding: 9px 12px;
+
+      border-radius: 10px;
+
+      color: var(--text);
+      background: #10263d;
+
+      border: 1px solid var(--line);
+    }
+
+    .modal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+    }
+
+    .primary-btn {
+      padding: 12px 18px;
+
+      color: #041019;
+
+      font-weight: 900;
+
+      background:
+        linear-gradient(
+          135deg,
+          var(--cyan),
+          #b8fff0
+        );
+
+      border: 0;
+    }
+
+    .secondary-btn {
+      padding: 11px 17px;
+
+      background:
+        rgba(255, 255, 255, 0.05);
+    }
+
+    .help-list {
+      padding-left: 20px;
+
+      color: var(--muted);
+
+      font-size: 0.88rem;
+      line-height: 1.75;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 9px;
+
+      margin: 18px 0;
+    }
+
+    .result-item {
+      padding: 13px;
+
+      border-radius: 13px;
+
+      background:
+        rgba(255, 255, 255, 0.035);
+
+      border:
+        1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .result-item span {
+      display: block;
+
+      color: var(--muted);
+      font-size: 0.74rem;
+    }
+
+    .result-item strong {
+      display: block;
+      margin-top: 4px;
+
+      font-size: 1.18rem;
+    }
+
+    .lesson {
+      padding: 14px;
+
+      border-radius: 14px;
+
+      color: #cfe3ee;
+
+      line-height: 1.65;
+
+      background:
+        rgba(105, 230, 241, 0.055);
+
+      border:
+        1px solid rgba(105, 230, 241, 0.15);
+    }
+
+    /* ─────────────────────────────────────────
+       반응형
+    ───────────────────────────────────────── */
+
+    @media (max-width: 1120px) {
+      .topbar {
+        grid-template-columns: 1fr auto;
+      }
+
+      .mission-stats {
+        grid-column: 1 / -1;
+        grid-row: 2;
+      }
+
+      .layout {
+        grid-template-columns: 1fr 1.35fr;
+      }
+
+      .right-column {
+        grid-column: 1 / -1;
+      }
+
+      .controls {
+        grid-template-columns:
+          repeat(4, 1fr);
+      }
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        width: min(100% - 16px, 1500px);
+        margin-top: 8px;
+      }
+
+      .topbar {
+        grid-template-columns: 1fr;
+        padding: 15px;
+      }
+
+      .top-actions {
+        justify-content: stretch;
+      }
+
+      .top-actions button {
+        flex: 1;
+      }
+
+      .resource-row,
+      .layout,
+      .intro-grid,
+      .result-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .controls {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .log {
+        grid-template-columns: 1fr;
+      }
+
+      .mission-stats {
+        justify-content: stretch;
+      }
+
+      .mission-stat {
+        flex: 1;
+        min-width: 80px;
+      }
+    }
+
+    @media (max-width: 440px) {
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
+      .control-btn {
+        min-height: 88px;
+      }
+
+      .brand-mark {
+        width: 44px;
+        height: 44px;
+      }
+    }
+  </style>
 </head>
+
 <body>
-    <h1>SETPOINT: 프로젝트 생명유지</h1>
-    <div class="story">요원 Unit-7, 환자의 항상성을 사수하십시오.</div>
-    
-    <div class="timer-box">생존 시간: <span id="timer">0</span>초</div>
-    <div id="avatar">😊</div>
-    
-    <div class="dashboard">
-        <div class="stat-box" id="box-glucose">
-            <h3>혈당 (Glucose)</h3>
-            <div id="val-glucose">100 mg/dL</div>
-            <div class="bar-bg"><div class="bar-fill" id="bar-glucose" style="background: #3fb950;"></div></div>
+  <div class="app">
+    <!-- 상단 헤더 -->
+    <header class="panel topbar">
+      <div class="brand">
+        <div class="brand-mark">SP</div>
+
+        <div>
+          <p class="eyebrow">HOMEOSTASIS CONTROL LAB</p>
+          <h1>Setpoint</h1>
+
+          <p class="subtitle">
+            혈당·체온·수분을 지키는 생체 관제 게임
+          </p>
         </div>
-        <div class="stat-box" id="box-temp">
-            <h3>체온 (Temp)</h3>
-            <div id="val-temp">36.5 °C</div>
-            <div class="bar-bg"><div class="bar-fill" id="bar-temp" style="background: #f85149;"></div></div>
+      </div>
+
+      <div class="mission-stats">
+        <div class="mission-stat">
+          <span>남은 시간</span>
+          <strong id="timeText">02:30</strong>
         </div>
+
+        <div class="mission-stat">
+          <span>점수</span>
+          <strong id="scoreText">0</strong>
+        </div>
+
+        <div class="mission-stat">
+          <span>안정 콤보</span>
+          <strong id="comboText">×1.0</strong>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <button class="small-btn" id="helpBtn">
+          도움말
+        </button>
+
+        <button
+          class="small-btn"
+          id="pauseBtn"
+          disabled
+        >
+          일시정지
+        </button>
+      </div>
+    </header>
+
+    <!-- 자원 표시 -->
+    <section class="resource-row">
+      <article class="panel resource">
+        <div class="resource-head">
+          <span>♥ 시스템 안정도</span>
+          <strong id="stabilityText">100%</strong>
+        </div>
+
+        <div class="track">
+          <div
+            class="fill"
+            id="stabilityFill"
+          ></div>
+        </div>
+      </article>
+
+      <article class="panel resource">
+        <div class="resource-head">
+          <span>⚡ 대사 에너지 ATP</span>
+          <strong id="energyText">100%</strong>
+        </div>
+
+        <div class="track">
+          <div
+            class="fill"
+            id="energyFill"
+          ></div>
+        </div>
+      </article>
+
+      <article class="panel resource">
+        <div class="resource-head">
+          <span>↺ 전체 피드백 부하</span>
+          <strong id="totalLoadText">0%</strong>
+        </div>
+
+        <div class="track">
+          <div
+            class="fill"
+            id="totalLoadFill"
+          ></div>
+        </div>
+      </article>
+    </section>
+
+    <main class="layout">
+      <!-- 외부 사건 패널 -->
+      <aside class="left-column">
+        <section class="panel section">
+          <div class="section-title">
+            <div>
+              <p class="eyebrow">
+                EXTERNAL THREAT
+              </p>
+
+              <h2>외부 사건 관제</h2>
+            </div>
+
+            <span
+              class="chip"
+              id="stageChip"
+            >
+              STAGE 1
+            </span>
+          </div>
+
+          <div
+            class="event-card"
+            id="eventCard"
+          >
+            <div
+              class="event-icon"
+              id="eventIcon"
+            >
+              ◎
+            </div>
+
+            <span
+              class="event-label"
+              id="eventLabel"
+            >
+              관측 중
+            </span>
+
+            <h3 id="eventTitle">
+              다음 사건을 분석하고 있습니다
+            </h3>
+
+            <p id="eventDesc">
+              경고가 나타나면 수치의 변화를 예측하고
+              필요한 조절 명령을 준비하세요.
+            </p>
+
+            <div class="event-count">
+              <span id="eventCountLabel">
+                다음 사건까지
+              </span>
+
+              <strong id="eventCountText">
+                --
+              </strong>
+            </div>
+
+            <div class="track">
+              <div
+                class="fill"
+                id="eventProgress"
+                style="
+                  background:
+                    linear-gradient(
+                      90deg,
+                      var(--cyan),
+                      var(--yellow)
+                    );
+                "
+              ></div>
+            </div>
+          </div>
+
+          <div
+            class="active-list"
+            id="activeEvents"
+          >
+            <p class="empty">
+              현재 지속 중인 외부 사건이 없습니다.
+            </p>
+          </div>
+        </section>
+      </aside>
+
+      <!-- 생체 수치 패널 -->
+      <section class="panel section center-column">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">
+              LIVE PHYSIOLOGY
+            </p>
+
+            <h2>생체 항상성 모니터</h2>
+          </div>
+
+          <span
+            class="chip"
+            id="bodyStateChip"
+          >
+            대기 중
+          </span>
+        </div>
+
+        <div class="vitals">
+          <!-- 혈당 -->
+          <article
+            class="vital"
+            id="glucoseCard"
+          >
+            <div class="vital-head">
+              <div class="vital-name">
+                <span class="vital-icon">
+                  G
+                </span>
+
+                혈당량
+              </div>
+
+              <span
+                class="vital-state"
+                id="glucoseState"
+              >
+                정상
+              </span>
+            </div>
+
+            <div class="reading">
+              <strong id="glucoseText">
+                90.0
+              </strong>
+
+              <span>mg/dL</span>
+
+              <span
+                class="trend"
+                id="glucoseTrend"
+              >
+                → 0.0/s
+              </span>
+            </div>
+
+            <div class="gauge">
+              <div
+                class="marker"
+                id="glucoseMarker"
+              ></div>
+            </div>
+
+            <div class="range-labels">
+              <span>40</span>
+              <span>안전 75–120</span>
+              <span>220</span>
+            </div>
+
+            <p class="vital-note">
+              인슐린은 낮추고 글루카곤은 높입니다.
+              두 호르몬을 연속 사용하면 반동이 커집니다.
+            </p>
+          </article>
+
+          <!-- 체온 -->
+          <article
+            class="vital"
+            id="tempCard"
+          >
+            <div class="vital-head">
+              <div class="vital-name">
+                <span class="vital-icon">
+                  T
+                </span>
+
+                심부 체온
+              </div>
+
+              <span
+                class="vital-state"
+                id="tempState"
+              >
+                정상
+              </span>
+            </div>
+
+            <div class="reading">
+              <strong id="tempText">
+                36.8
+              </strong>
+
+              <span>°C</span>
+
+              <span
+                class="trend"
+                id="tempTrend"
+              >
+                → 0.00/s
+              </span>
+            </div>
+
+            <div class="gauge">
+              <div
+                class="marker"
+                id="tempMarker"
+              ></div>
+            </div>
+
+            <div class="range-labels">
+              <span>34.0</span>
+              <span>안전 36.2–37.4</span>
+              <span>41.0</span>
+            </div>
+
+            <p class="vital-note">
+              교감신경과 티록신은 열 생산을 높이고,
+              땀과 피부 혈관 확장은 열을 방출합니다.
+            </p>
+          </article>
+
+          <!-- 삼투압 -->
+          <article
+            class="vital"
+            id="osmCard"
+          >
+            <div class="vital-head">
+              <div class="vital-name">
+                <span class="vital-icon">
+                  H
+                </span>
+
+                혈장 삼투압
+              </div>
+
+              <span
+                class="vital-state"
+                id="osmState"
+              >
+                정상
+              </span>
+            </div>
+
+            <div class="reading">
+              <strong id="osmText">
+                290.0
+              </strong>
+
+              <span>mOsm/kg</span>
+
+              <span
+                class="trend"
+                id="osmTrend"
+              >
+                → 0.0/s
+              </span>
+            </div>
+
+            <div class="gauge">
+              <div
+                class="marker"
+                id="osmMarker"
+              ></div>
+            </div>
+
+            <div class="range-labels">
+              <span>255</span>
+              <span>안전 280–300</span>
+              <span>335</span>
+            </div>
+
+            <p class="vital-note">
+              ADH는 콩팥의 수분 재흡수를 높이고,
+              수분 보급은 삼투압을 빠르게 낮춥니다.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <!-- 조작 패널 -->
+      <aside class="panel section right-column">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">
+              NEGATIVE FEEDBACK
+            </p>
+
+            <h2>호르몬 관제 명령</h2>
+          </div>
+
+          <span class="chip">
+            키 1–8
+          </span>
+        </div>
+
+        <div class="feedback-grid">
+          <div class="axis-load">
+            <div class="axis-head">
+              <span>혈당 조절축 부하</span>
+              <strong id="glucoseLoadText">
+                0%
+              </strong>
+            </div>
+
+            <div class="track">
+              <div
+                class="fill axis-fill"
+                id="glucoseLoadFill"
+              ></div>
+            </div>
+          </div>
+
+          <div class="axis-load">
+            <div class="axis-head">
+              <span>체온 조절축 부하</span>
+              <strong id="tempLoadText">
+                0%
+              </strong>
+            </div>
+
+            <div class="track">
+              <div
+                class="fill axis-fill"
+                id="tempLoadFill"
+              ></div>
+            </div>
+          </div>
+
+          <div class="axis-load">
+            <div class="axis-head">
+              <span>수분 조절축 부하</span>
+              <strong id="waterLoadText">
+                0%
+              </strong>
+            </div>
+
+            <div class="track">
+              <div
+                class="fill axis-fill"
+                id="waterLoadFill"
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="controls"
+          id="controls"
+        >
+          <button
+            class="control-btn"
+            data-command="insulin"
+          >
+            <span class="control-key">1</span>
+
+            <strong>인슐린 밸브</strong>
+
+            <small>
+              혈당↓ · 과다 시 반동성 혈당 상승
+            </small>
+
+            <div class="dose-track">
+              <div
+                class="dose-fill"
+                id="dose-insulin"
+              ></div>
+            </div>
+          </button>
+
+          <button
+            class="control-btn"
+            data-command="glucagon"
+          >
+            <span class="control-key">2</span>
+
+            <strong>글루카곤 분비</strong>
+
+            <small>
+              혈당↑ · 간의 포도당 방출
+            </small>
+
+            <div class="dose-track">
+              <div
+                class="dose-fill"
+                id="dose-glucagon"
+              ></div>
+            </div>
+          </button>
+
+          <button
+            class="control-btn"
+            data-command="sympathetic"
+          >
+            <span class="control-key">3</span>
+
+            <strong>교감신경 자극</strong>
+
+            <small>
+              체온↑ 혈당↑ · ATP 소모↑
+            </small>
+
+            <div class="dose-track">
+              <div
+                class="dose-fill"
+                id="dose-sympathetic"
+              ></div>
+            </div>
+          </button>
+
+          <button
+            class="control-btn"
+            data-command="thyroxine"
+          >
+            <span class="control-key">4</span>
+
+            <strong>티록신 지원</strong>
+
+            <small>
+              느리고 오래가는 열 생산
+            </small>
+
+            <div class="dose-track">
+              <div
+                class="dose-fill"
+                id="dose-thyroxine"
+              ></div>
+            </div>
+          </button>
+
+          <button
+            class="control-btn"
+            data-command="sweat"
+          >
+            <span class="control-key">5</span>
+
+            <strong>땀·혈관 확장</strong>
+
+            <small>
+              체온↓ · 수분 손실로 삼투압↑
+            </small>
+
+            <div class="dose-track">
+              <div
+                class="dose-fill"
+                id="dose-sweat"
+              ></div>
+            </div>
+          </button>
+
+          <button
+            class="control-btn"
+            data-command="adh"
+          >
+            <span class="control-key">6</span>
+
+            <strong>ADH 분비</strong>
+
+            <small>
+              수분 재흡수↑ · 삼투압↓
+            </small>
+
+            <div class="dose-track">
+              <div
+                class="dose-fill"
+                id="dose-adh"
+              ></div>
+            </div>
+          </button>
+
+          <button
+            class="control-btn"
+            data-command="water"
+          >
+            <span class="control-key">7</span>
+
+            <strong>수분 보급</strong>
+
+            <small>
+              삼투압 빠르게↓ · 과잉 주의
+            </small>
+
+            <div class="dose-track">
+              <div
+                class="dose-fill"
+                id="dose-water"
+              ></div>
+            </div>
+          </button>
+
+          <button
+            class="control-btn"
+            data-command="recovery"
+          >
+            <span class="control-key">8</span>
+
+            <strong>부교감 회복</strong>
+
+            <small>
+              잔류 효과·피드백 부하 완화
+            </small>
+
+            <div class="dose-track">
+              <div
+                class="dose-fill"
+                id="dose-recovery"
+              ></div>
+            </div>
+          </button>
+        </div>
+
+        <p class="tip">
+          <strong>핵심:</strong>
+          버튼을 난타하지 마세요. 호르몬 효과는 잠시 남아
+          계속 작용하며, 기준점을 지나친 뒤 반대 방향의
+          보상 반동이 발생합니다.
+        </p>
+      </aside>
+    </main>
+
+    <!-- 관제 기록 -->
+    <section class="panel log-panel">
+      <div class="log-head">
+        <h2>관제 기록</h2>
+
+        <button
+          class="small-btn"
+          id="clearLogBtn"
+        >
+          기록 지우기
+        </button>
+      </div>
+
+      <ol
+        class="log"
+        id="logList"
+      ></ol>
+    </section>
+  </div>
+
+  <!-- 상단 알림 -->
+  <div
+    class="toast-stack"
+    id="toastStack"
+  ></div>
+
+  <!-- 시작 화면 -->
+  <div
+    class="modal"
+    id="startModal"
+  >
+    <div class="modal-card">
+      <p class="eyebrow">
+        BIOLOGICAL RTS
+      </p>
+
+      <h2>
+        Setpoint: Homeostasis Command
+      </h2>
+
+      <p>
+        인체 중앙 제어실의 관제사가 되어 식사, 운동,
+        추위, 탈수 같은 사건에 대응하세요.
+        목표는 모든 생체 수치를 정상 범위에 유지하는 것입니다.
+      </p>
+
+      <div class="intro-grid">
+        <div class="intro-item">
+          <strong>
+            ① 변화를 먼저 예측
+          </strong>
+
+          <span>
+            사건 경고와 수치의 변화 방향을 확인합니다.
+          </span>
+        </div>
+
+        <div class="intro-item">
+          <strong>
+            ② 필요한 만큼만 조절
+          </strong>
+
+          <span>
+            한 번 투여한 호르몬은 잠시 남아 계속 작용합니다.
+          </span>
+        </div>
+
+        <div class="intro-item">
+          <strong>
+            ③ 반동까지 관찰
+          </strong>
+
+          <span>
+            과다분비는 진동과 수용체 보호 셧다운을 일으킵니다.
+          </span>
+        </div>
+      </div>
+
+      <div class="settings">
+        <label for="difficulty">
+          난이도
+        </label>
+
+        <select id="difficulty">
+          <option value="easy">
+            훈련 모드
+          </option>
+
+          <option
+            value="normal"
+            selected
+          >
+            표준 임무
+          </option>
+
+          <option value="hard">
+            전문가 모드
+          </option>
+        </select>
+      </div>
+
+      <div class="modal-actions">
+        <button
+          class="primary-btn"
+          id="startBtn"
+        >
+          관제 시작
+        </button>
+
+        <button
+          class="secondary-btn"
+          id="introHelpBtn"
+        >
+          조작법 보기
+        </button>
+      </div>
     </div>
-    
-    <div class="controls">
-        <button id="btn-insulin" onclick="injectHormone('insulin')">인슐린 투여 (혈당 30↓)</button>
-        <button id="btn-glucagon" onclick="injectHormone('glucagon')">글루카곤 투여 (혈당 30↑)</button>
-        <button id="btn-thyroxine" onclick="injectHormone('thyroxine')">티록신 분비 (체온 1.0↑, 혈당 10↓)</button>
-        <button id="btn-sweat" onclick="injectHormone('sweat')" style="background: #4da6ff;">땀 분비 (체온 0.8↓)</button>
+  </div>
+
+  <!-- 도움말 -->
+  <div
+    class="modal hidden"
+    id="helpModal"
+  >
+    <div class="modal-card">
+      <p class="eyebrow">
+        OPERATING MANUAL
+      </p>
+
+      <h2>
+        조작법과 생명과학 원리
+      </h2>
+
+      <ul class="help-list">
+        <li>
+          <b>혈당:</b>
+          높을 때 인슐린(1), 낮을 때 글루카곤(2)을 사용합니다.
+        </li>
+
+        <li>
+          <b>체온:</b>
+          낮을 때 교감신경(3) 또는 티록신(4),
+          높을 때 땀·혈관 확장(5)을 사용합니다.
+        </li>
+
+        <li>
+          <b>삼투압:</b>
+          높을 때 ADH(6) 또는 수분 보급(7)을 사용합니다.
+        </li>
+
+        <li>
+          <b>부교감 회복(8):</b>
+          직접 수치를 크게 바꾸기보다 잔류 호르몬과
+          피드백 부하를 낮춥니다.
+        </li>
+
+        <li>
+          같은 명령을 짧은 시간에 반복하면 수용체 둔감화 때문에
+          효과는 약해지고 반동은 강해집니다.
+        </li>
+
+        <li>
+          스페이스바로 일시정지할 수 있습니다.
+        </li>
+      </ul>
+
+      <div class="modal-actions">
+        <button
+          class="primary-btn"
+          id="closeHelpBtn"
+        >
+          확인
+        </button>
+      </div>
     </div>
-    
-    <div id="log">시스템 정상 가동 중...</div>
-    <div id="event-log"></div>
+  </div>
 
-    <script>
-        let glucose = 100;
-        let temp = 36.5;
-        let isShutdown = false;
-        let survivalTime = 0;
-        let timerInterval;
+  <!-- 게임 결과 -->
+  <div
+    class="modal hidden"
+    id="resultModal"
+  >
+    <div class="modal-card">
+      <p class="eyebrow">
+        MISSION REPORT
+      </p>
 
-        function updateUI() {
-            document.getElementById('val-glucose').innerText = Math.round(glucose) + " mg/dL";
-            document.getElementById('bar-glucose').style.width = Math.min(100, Math.max(0, (glucose / 200) * 100)) + "%";
-            
-            document.getElementById('val-temp').innerText = temp.toFixed(1) + " °C";
-            document.getElementById('bar-temp').style.width = Math.min(100, Math.max(0, ((temp - 34) / 6) * 100)) + "%";
+      <h2 id="resultTitle">
+        임무 종료
+      </h2>
 
-            let avatar = document.getElementById('avatar');
-            if (glucose <= 40 || glucose >= 200 || temp <= 34 || temp >= 40) {
-                document.getElementById('log').innerText = "치명적 수치 도달. 숙주 사망. 시스템 정지.";
-                avatar.innerText = "💀";
-                isShutdown = true;
-                clearInterval(timerInterval);
-                document.querySelectorAll('button').forEach(btn => btn.disabled = true);
-            } else if (temp > 38.5) {
-                avatar.innerText = "🥵";
-            } else if (temp < 35.5) {
-                avatar.innerText = "🥶";
-            } else if (glucose > 160 || glucose < 60) {
-                avatar.innerText = "😵‍💫";
-            } else {
-                avatar.innerText = "😊";
-            }
+      <p id="resultReason"></p>
+
+      <div class="result-grid">
+        <div class="result-item">
+          <span>최종 점수</span>
+          <strong id="resultScore">0</strong>
+        </div>
+
+        <div class="result-item">
+          <span>관제 등급</span>
+          <strong id="resultGrade">D</strong>
+        </div>
+
+        <div class="result-item">
+          <span>정상 범위 유지율</span>
+          <strong id="resultSafe">0%</strong>
+        </div>
+
+        <div class="result-item">
+          <span>명령 정확도</span>
+          <strong id="resultAccuracy">0%</strong>
+        </div>
+
+        <div class="result-item">
+          <span>기준점 진동</span>
+          <strong id="resultOsc">0회</strong>
+        </div>
+
+        <div class="result-item">
+          <span>최대 피드백 부하</span>
+          <strong id="resultLoad">0%</strong>
+        </div>
+      </div>
+
+      <div
+        class="lesson"
+        id="resultLesson"
+      ></div>
+
+      <div
+        class="modal-actions"
+        style="margin-top: 16px"
+      >
+        <button
+          class="primary-btn"
+          id="restartBtn"
+        >
+          다시 시작
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    /* ─────────────────────────────────────────
+       기본 도구
+    ───────────────────────────────────────── */
+
+    const $ = (id) =>
+      document.getElementById(id);
+
+    const clamp = (number, min, max) =>
+      Math.min(max, Math.max(min, number));
+
+    const randomNumber = (min, max) =>
+      Math.random() * (max - min) + min;
+
+    const chooseRandom = (array) =>
+      array[
+        Math.floor(
+          Math.random() * array.length
+        )
+      ];
+
+    /* ─────────────────────────────────────────
+       난이도 설정
+    ───────────────────────────────────────── */
+
+    const DIFFICULTY = {
+      easy: {
+        eventPower: 0.78,
+        intervalMin: 12,
+        intervalMax: 17,
+        loadGain: 0.8,
+        duration: 150
+      },
+
+      normal: {
+        eventPower: 1,
+        intervalMin: 9,
+        intervalMax: 14,
+        loadGain: 1,
+        duration: 150
+      },
+
+      hard: {
+        eventPower: 1.22,
+        intervalMin: 6,
+        intervalMax: 10,
+        loadGain: 1.18,
+        duration: 150
+      }
+    };
+
+    /* ─────────────────────────────────────────
+       외부 사건 데이터
+    ───────────────────────────────────────── */
+
+    const EVENT_LIBRARY = [
+      {
+        id: "meal",
+        icon: "🍚",
+        title: "고탄수화물 식사",
+
+        desc:
+          "소화·흡수로 혈당이 빠르게 상승합니다.",
+
+        duration: 15,
+
+        rates: {
+          glucose: 2.05,
+          temp: 0.003,
+          osm: 0.04,
+          energy: 0.06
+        }
+      },
+
+      {
+        id: "sugar",
+        icon: "🥤",
+        title: "당분 음료 급섭취",
+
+        desc:
+          "단순당이 빠르게 흡수되어 혈당과 삼투압을 끌어올립니다.",
+
+        duration: 10,
+
+        rates: {
+          glucose: 3.05,
+          temp: 0.002,
+          osm: 0.09,
+          energy: 0.03
+        }
+      },
+
+      {
+        id: "exercise",
+        icon: "🏃",
+        title: "격렬한 운동",
+
+        desc:
+          "근육이 포도당을 소비하고 대사열과 수분 손실이 증가합니다.",
+
+        duration: 16,
+
+        rates: {
+          glucose: -1.25,
+          temp: 0.055,
+          osm: 0.24,
+          energy: -0.52
+        }
+      },
+
+      {
+        id: "cold",
+        icon: "❄️",
+        title: "한랭 노출",
+
+        desc:
+          "외부로 열을 빼앗겨 심부 체온이 하강합니다.",
+
+        duration: 17,
+
+        rates: {
+          glucose: -0.1,
+          temp: -0.072,
+          osm: 0.03,
+          energy: -0.14
+        }
+      },
+
+      {
+        id: "dehydration",
+        icon: "🏜️",
+        title: "수분 공급 중단",
+
+        desc:
+          "체수분이 감소해 혈장 삼투압이 빠르게 상승합니다.",
+
+        duration: 18,
+
+        rates: {
+          glucose: 0.04,
+          temp: 0.015,
+          osm: 0.43,
+          energy: -0.1
+        }
+      },
+
+      {
+        id: "heat",
+        icon: "☀️",
+        title: "고온 환경",
+
+        desc:
+          "체온이 상승하고 발한으로 수분 손실이 커집니다.",
+
+        duration: 16,
+
+        rates: {
+          glucose: 0.04,
+          temp: 0.062,
+          osm: 0.24,
+          energy: -0.12
+        }
+      },
+
+      {
+        id: "salt",
+        icon: "🧂",
+        title: "고염분 식사",
+
+        desc:
+          "혈장 용질 농도가 높아져 삼투압이 상승합니다.",
+
+        duration: 14,
+
+        rates: {
+          glucose: 0.02,
+          temp: 0.004,
+          osm: 0.53,
+          energy: 0
+        }
+      },
+
+      {
+        id: "fasting",
+        icon: "⌛",
+        title: "장시간 공복",
+
+        desc:
+          "외부 포도당 공급이 줄어 혈당이 하강합니다.",
+
+        duration: 17,
+
+        rates: {
+          glucose: -0.86,
+          temp: -0.006,
+          osm: 0.02,
+          energy: -0.13
+        }
+      },
+
+      {
+        id: "stress",
+        icon: "⚠️",
+        title: "급성 스트레스",
+
+        desc:
+          "교감신경 반응으로 혈당과 체온이 함께 상승합니다.",
+
+        duration: 13,
+
+        rates: {
+          glucose: 1.2,
+          temp: 0.027,
+          osm: 0.08,
+          energy: -0.22
+        }
+      }
+    ];
+
+    /* ─────────────────────────────────────────
+       조절 명령 데이터
+    ───────────────────────────────────────── */
+
+    const COMMANDS = {
+      insulin: {
+        name: "인슐린",
+        effect: "insulin",
+        axis: "glucose",
+
+        add: 26,
+        cost: 5,
+
+        good: (game) =>
+          game.glucose > 105,
+
+        rebound: {
+          delay: 7,
+          duration: 8,
+
+          rates: {
+            glucose: 0.55
+          }
+        },
+
+        lesson:
+          "혈당이 이미 낮거나 빠르게 하강할 때 인슐린을 추가하면 저혈당과 이후 반동성 상승을 만들 수 있습니다."
+      },
+
+      glucagon: {
+        name: "글루카곤",
+        effect: "glucagon",
+        axis: "glucose",
+
+        add: 25,
+        cost: 5,
+
+        good: (game) =>
+          game.glucose < 82,
+
+        rebound: {
+          delay: 7,
+          duration: 8,
+
+          rates: {
+            glucose: -0.52
+          }
+        },
+
+        lesson:
+          "글루카곤은 간의 글리코젠 분해를 촉진해 혈당을 높입니다. 고혈당에서 사용하면 오버슈트가 커집니다."
+      },
+
+      sympathetic: {
+        name: "교감신경",
+        effect: "sympathetic",
+        axis: "temp",
+        extraAxis: "glucose",
+
+        add: 23,
+        cost: 8,
+
+        good: (game) =>
+          game.temp < 36.45 ||
+          game.glucose < 70,
+
+        rebound: {
+          delay: 6,
+          duration: 8,
+
+          rates: {
+            glucose: -0.28,
+            temp: -0.018
+          }
+        },
+
+        lesson:
+          "교감신경은 열 생산뿐 아니라 혈당 동원과 에너지 소비도 높입니다. 한 수치를 고치면서 다른 수치를 흔들 수 있습니다."
+      },
+
+      thyroxine: {
+        name: "티록신",
+        effect: "thyroxine",
+        axis: "temp",
+
+        add: 22,
+        cost: 6,
+
+        good: (game) =>
+          game.temp < 36.35,
+
+        rebound: {
+          delay: 10,
+          duration: 10,
+
+          rates: {
+            temp: -0.014
+          }
+        },
+
+        lesson:
+          "티록신의 효과는 느리지만 오래 지속됩니다. 체온이 회복된 뒤에도 남은 효과가 과열을 만들 수 있습니다."
+      },
+
+      sweat: {
+        name: "땀·혈관 확장",
+        effect: "sweat",
+        axis: "temp",
+        extraAxis: "water",
+
+        add: 25,
+        cost: 6,
+
+        good: (game) =>
+          game.temp > 37.25,
+
+        rebound: {
+          delay: 6,
+          duration: 7,
+
+          rates: {
+            temp: 0.018
+          }
+        },
+
+        lesson:
+          "발한은 체온을 낮추지만 물을 잃게 하므로 삼투압을 높입니다. 체온과 수분을 함께 봐야 합니다."
+      },
+
+      adh: {
+        name: "ADH",
+        effect: "adh",
+        axis: "water",
+
+        add: 25,
+        cost: 4,
+
+        good: (game) =>
+          game.osm > 296,
+
+        rebound: {
+          delay: 8,
+          duration: 8,
+
+          rates: {
+            osm: 0.22
+          }
+        },
+
+        lesson:
+          "ADH는 콩팥의 수분 재흡수를 높입니다. 삼투압이 이미 낮은 상태에서 과다분비하면 수분 과잉이 될 수 있습니다."
+      },
+
+      water: {
+        name: "수분 보급",
+        effect: "water",
+        axis: "water",
+
+        add: 28,
+        cost: 2,
+
+        good: (game) =>
+          game.osm > 296,
+
+        rebound: {
+          delay: 5,
+          duration: 6,
+
+          rates: {
+            osm: 0.16
+          }
+        },
+
+        lesson:
+          "수분은 삼투압을 빠르게 낮추지만 한꺼번에 과도하게 공급하면 저삼투압으로 기준점을 지나칠 수 있습니다."
+      },
+
+      recovery: {
+        name: "부교감 회복",
+        effect: "recovery",
+        axis: "recovery",
+
+        add: 28,
+        cost: 3,
+
+        good: (game) =>
+          Math.max(
+            game.load.glucose,
+            game.load.temp,
+            game.load.water
+          ) > 42,
+
+        rebound: null,
+
+        lesson:
+          "회복 모드는 즉각적인 수치 조절보다 잔류 신호와 피드백 부하를 낮추는 데 유리합니다."
+      }
+    };
+
+    /* ─────────────────────────────────────────
+       게임 상태
+    ───────────────────────────────────────── */
+
+    let state;
+    let frameId = null;
+    let lastTime = 0;
+    let secondAccumulator = 0;
+
+    function makeFreshState() {
+      const mode =
+        DIFFICULTY[
+          $("difficulty").value
+        ];
+
+      return {
+        mode,
+
+        running: true,
+        paused: false,
+
+        timeLeft: mode.duration,
+        elapsed: 0,
+
+        score: 0,
+        combo: 1,
+        comboSeconds: 0,
+
+        stability: 100,
+        energy: 100,
+
+        glucose: 90,
+        temp: 36.8,
+        osm: 290,
+
+        rates: {
+          glucose: 0,
+          temp: 0,
+          osm: 0
+        },
+
+        effects: {
+          insulin: 0,
+          glucagon: 0,
+          sympathetic: 0,
+          thyroxine: 0,
+          sweat: 0,
+          adh: 0,
+          water: 0,
+          recovery: 0
+        },
+
+        load: {
+          glucose: 0,
+          temp: 0,
+          water: 0
+        },
+
+        nextEventIn: 5,
+        eventCycle: 5,
+
+        pendingEvent: null,
+        activeEvents: [],
+        reboundQueue: [],
+
+        dangerTime: 0,
+        overloadTime: 0,
+
+        lastActionAt: {},
+
+        lastSide: {
+          glucose: 0,
+          temp: 0,
+          osm: 0
+        },
+
+        stats: {
+          actions: 0,
+          good: 0,
+          bad: 0,
+
+          safeSeconds: 0,
+          oscillations: 0,
+
+          maxLoad: 0,
+          maxCombo: 1
+        },
+
+        commandCount:
+          Object.fromEntries(
+            Object.keys(COMMANDS).map(
+              (key) => [key, 0]
+            )
+          )
+      };
+    }
+
+    /* ─────────────────────────────────────────
+       게임 시작
+    ───────────────────────────────────────── */
+
+    function startGame() {
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+      }
+
+      state = makeFreshState();
+
+      lastTime = performance.now();
+      secondAccumulator = 0;
+
+      $("startModal").classList.add(
+        "hidden"
+      );
+
+      $("resultModal").classList.add(
+        "hidden"
+      );
+
+      $("pauseBtn").disabled = false;
+      $("pauseBtn").textContent =
+        "일시정지";
+
+      document
+        .querySelectorAll(".control-btn")
+        .forEach((button) => {
+          button.disabled = false;
+        });
+
+      $("logList").innerHTML = "";
+
+      addLog(
+        "관제 임무를 시작했습니다. 사건 경고를 확인하세요.",
+        "good"
+      );
+
+      render();
+
+      frameId =
+        requestAnimationFrame(gameLoop);
+    }
+
+    /* ─────────────────────────────────────────
+       게임 반복 실행
+    ───────────────────────────────────────── */
+
+    function gameLoop(now) {
+      if (!state || !state.running) {
+        return;
+      }
+
+      const deltaTime = Math.min(
+        (now - lastTime) / 1000,
+        0.05
+      );
+
+      lastTime = now;
+
+      if (!state.paused) {
+        updateGame(deltaTime);
+
+        secondAccumulator += deltaTime;
+
+        if (secondAccumulator >= 1) {
+          secondAccumulator -= 1;
+          limitLogLength();
+        }
+      }
+
+      render();
+
+      frameId =
+        requestAnimationFrame(gameLoop);
+    }
+
+    /* ─────────────────────────────────────────
+       전체 물리 엔진
+    ───────────────────────────────────────── */
+
+    function updateGame(deltaTime) {
+      state.elapsed += deltaTime;
+
+      state.timeLeft = Math.max(
+        0,
+        state.timeLeft - deltaTime
+      );
+
+      const stage = getStage();
+
+      updateEvents(deltaTime, stage);
+      updateEffects(deltaTime);
+      updateRebounds(deltaTime);
+
+      const previous = {
+        glucose: state.glucose,
+        temp: state.temp,
+        osm: state.osm
+      };
+
+      const eventRate = {
+        glucose: 0,
+        temp: 0,
+        osm: 0,
+        energy: 0
+      };
+
+      for (
+        const activeEvent
+        of state.activeEvents
+      ) {
+        eventRate.glucose +=
+          activeEvent.rates.glucose;
+
+        eventRate.temp +=
+          activeEvent.rates.temp;
+
+        eventRate.osm +=
+          activeEvent.rates.osm;
+
+        eventRate.energy +=
+          activeEvent.rates.energy;
+      }
+
+      const glucoseEfficiency =
+        receptorEfficiency(
+          state.load.glucose
+        );
+
+      const tempEfficiency =
+        receptorEfficiency(
+          state.load.temp
+        );
+
+      const waterEfficiency =
+        receptorEfficiency(
+          state.load.water
+        );
+
+      const effect = state.effects;
+
+      /*
+        자연적인 항상성 회복
+
+        값이 기준점에서 벗어나면
+        자연적으로 기준점 쪽으로 조금씩 돌아옵니다.
+      */
+
+      let glucoseRate =
+        (90 - state.glucose) * 0.008 +
+        eventRate.glucose;
+
+      let tempRate =
+        (36.8 - state.temp) * 0.012 +
+        eventRate.temp;
+
+      let osmRate =
+        (290 - state.osm) * 0.006 +
+        eventRate.osm;
+
+      /*
+        혈당 조절
+
+        인슐린 → 혈당 감소
+        글루카곤 → 혈당 증가
+      */
+
+      glucoseRate +=
+        (
+          -0.052 * effect.insulin +
+          0.049 * effect.glucagon
+        ) * glucoseEfficiency;
+
+      /*
+        교감신경
+
+        체온을 높이지만
+        혈당도 함께 증가시킵니다.
+      */
+
+      glucoseRate +=
+        0.018 *
+        effect.sympathetic *
+        tempEfficiency;
+
+      /*
+        티록신의 대사 증가로
+        포도당 소비가 늘어납니다.
+      */
+
+      glucoseRate -=
+        0.0045 *
+        effect.thyroxine *
+        tempEfficiency;
+
+      /*
+        체온 조절
+
+        교감신경 → 체온 증가
+        티록신 → 장기적인 체온 증가
+        땀 → 체온 감소
+      */
+
+      tempRate +=
+        (
+          0.00155 *
+            effect.sympathetic +
+
+          0.00082 *
+            effect.thyroxine -
+
+          0.00185 *
+            effect.sweat
+        ) * tempEfficiency;
+
+      /*
+        삼투압 조절
+
+        땀 → 수분 손실로 삼투압 증가
+        ADH → 수분 재흡수로 삼투압 감소
+        수분 보급 → 삼투압 감소
+      */
+
+      osmRate +=
+        0.0042 *
+        effect.sweat *
+        tempEfficiency;
+
+      osmRate +=
+        (
+          -0.0068 *
+            effect.adh -
+
+          0.0145 *
+            effect.water
+        ) * waterEfficiency;
+
+      /*
+        고혈당이 심해지면
+        혈장 삼투압도 약간 높아집니다.
+      */
+
+      osmRate +=
+        Math.max(
+          0,
+          state.glucose - 120
+        ) * 0.00055;
+
+      /*
+        티록신에 의한 대사 증가도
+        수분 소모에 소량 영향을 줍니다.
+      */
+
+      osmRate +=
+        0.0012 *
+        effect.thyroxine;
+
+      /*
+        지연된 음성 피드백 반동 적용
+      */
+
+      for (
+        const rebound
+        of state.reboundQueue
+      ) {
+        if (rebound.delay <= 0) {
+          glucoseRate +=
+            rebound.rates.glucose || 0;
+
+          tempRate +=
+            rebound.rates.temp || 0;
+
+          osmRate +=
+            rebound.rates.osm || 0;
+        }
+      }
+
+      /*
+        수치 적용
+      */
+
+      state.glucose = clamp(
+        state.glucose +
+          glucoseRate * deltaTime,
+
+        25,
+        270
+      );
+
+      state.temp = clamp(
+        state.temp +
+          tempRate * deltaTime,
+
+        32.5,
+        42.5
+      );
+
+      state.osm = clamp(
+        state.osm +
+          osmRate * deltaTime,
+
+        245,
+        350
+      );
+
+      state.energy = clamp(
+        state.energy +
+          eventRate.energy * deltaTime,
+
+        0,
+        100
+      );
+
+      /*
+        모든 수치가 정상 범위라면
+        점수, 콤보, 안정도, ATP 회복
+      */
+
+      const allSafe =
+        isInSafeRange();
+
+      if (allSafe) {
+        state.stats.safeSeconds +=
+          deltaTime;
+
+        state.comboSeconds +=
+          deltaTime;
+
+        state.combo = clamp(
+          1 +
+            Math.floor(
+              state.comboSeconds / 8
+            ) * 0.25,
+
+          1,
+          3
+        );
+
+        state.stats.maxCombo =
+          Math.max(
+            state.stats.maxCombo,
+            state.combo
+          );
+
+        state.score +=
+          11 *
+          state.combo *
+          deltaTime;
+
+        state.stability = clamp(
+          state.stability +
+            0.62 * deltaTime,
+
+          0,
+          100
+        );
+
+        state.energy = clamp(
+          state.energy +
+            0.55 * deltaTime,
+
+          0,
+          100
+        );
+      } else {
+        state.combo = 1;
+        state.comboSeconds = 0;
+      }
+
+      /*
+        기준 범위 이탈에 따른 안정도 피해
+      */
+
+      const errors =
+        calculateNormalizedErrors();
+
+      const damage =
+        (
+          Math.pow(
+            errors.glucose,
+            1.35
+          ) * 3 +
+
+          Math.pow(
+            errors.temp,
+            1.45
+          ) * 5.2 +
+
+          Math.pow(
+            errors.osm,
+            1.35
+          ) * 3.1
+        ) * deltaTime;
+
+      state.stability = clamp(
+        state.stability - damage,
+        0,
+        100
+      );
+
+      /*
+        ATP 고갈 피해
+      */
+
+      if (state.energy <= 0.5) {
+        state.stability = clamp(
+          state.stability -
+            2.2 * deltaTime,
+
+          0,
+          100
+        );
+      }
+
+      /*
+        매우 위험한 수치가
+        오래 유지되는지 확인
+      */
+
+      const severe =
+        state.glucose < 48 ||
+        state.glucose > 215 ||
+        state.temp < 34.7 ||
+        state.temp > 40.3 ||
+        state.osm < 262 ||
+        state.osm > 328;
+
+      if (severe) {
+        state.dangerTime +=
+          deltaTime;
+      } else {
+        state.dangerTime =
+          Math.max(
+            0,
+            state.dangerTime -
+              deltaTime * 1.8
+          );
+      }
+
+      /*
+        피드백 과부하 확인
+      */
+
+      const maxLoad =
+        Math.max(
+          state.load.glucose,
+          state.load.temp,
+          state.load.water
+        );
+
+      state.stats.maxLoad =
+        Math.max(
+          state.stats.maxLoad,
+          maxLoad
+        );
+
+      if (maxLoad > 92) {
+        state.overloadTime +=
+          deltaTime;
+      } else {
+        state.overloadTime =
+          Math.max(
+            0,
+            state.overloadTime -
+              deltaTime * 1.5
+          );
+      }
+
+      /*
+        현재 변화 속도 계산
+      */
+
+      state.rates.glucose =
+        (
+          state.glucose -
+          previous.glucose
+        ) / Math.max(deltaTime, 0.001);
+
+      state.rates.temp =
+        (
+          state.temp -
+          previous.temp
+        ) / Math.max(deltaTime, 0.001);
+
+      state.rates.osm =
+        (
+          state.osm -
+          previous.osm
+        ) / Math.max(deltaTime, 0.001);
+
+      detectOscillation();
+
+      /*
+        패배 및 승리 조건
+      */
+
+      if (state.stability <= 0) {
+        endGame(
+          false,
+          "생체 수치 이탈이 누적되어 시스템 안정도가 0%가 되었습니다."
+        );
+      } else if (
+        state.overloadTime >= 3.2 ||
+        maxLoad >= 100
+      ) {
+        endGame(
+          false,
+          "호르몬 조절축이 과부하되어 수용체 보호 셧다운이 발생했습니다."
+        );
+      } else if (
+        state.dangerTime >= 5
+      ) {
+        endGame(
+          false,
+          "위험 수치가 너무 오래 지속되어 생체 시스템이 셧다운되었습니다."
+        );
+      } else if (
+        state.timeLeft <= 0
+      ) {
+        endGame(
+          true,
+          "임무 시간을 버텨 생체 시스템을 인계했습니다."
+        );
+      }
+    }
+
+    /* ─────────────────────────────────────────
+       외부 사건 처리
+    ───────────────────────────────────────── */
+
+    function updateEvents(
+      deltaTime,
+      stage
+    ) {
+      for (
+        const activeEvent
+        of state.activeEvents
+      ) {
+        activeEvent.remaining -=
+          deltaTime;
+      }
+
+      state.activeEvents =
+        state.activeEvents.filter(
+          (activeEvent) =>
+            activeEvent.remaining > 0
+        );
+
+      state.nextEventIn -= deltaTime;
+
+      /*
+        사건 발생 3초 전에
+        경고할 사건을 미리 선택합니다.
+      */
+
+      if (
+        !state.pendingEvent &&
+        state.nextEventIn <= 3
+      ) {
+        const availableEvents =
+          EVENT_LIBRARY.filter(
+            (eventData) =>
+              !state.activeEvents.some(
+                (activeEvent) =>
+                  activeEvent.id ===
+                  eventData.id
+              )
+          );
+
+        state.pendingEvent = {
+          ...chooseRandom(
+            availableEvents.length
+              ? availableEvents
+              : EVENT_LIBRARY
+          )
+        };
+      }
+
+      /*
+        사건 실제 발생
+      */
+
+      if (
+        state.nextEventIn <= 0 &&
+        state.pendingEvent
+      ) {
+        const baseEvent =
+          state.pendingEvent;
+
+        const stagePower =
+          1 + (stage - 1) * 0.1;
+
+        const totalPower =
+          state.mode.eventPower *
+          stagePower;
+
+        const activeEvent = {
+          ...baseEvent,
+
+          remaining:
+            baseEvent.duration,
+
+          rates:
+            Object.fromEntries(
+              Object.entries(
+                baseEvent.rates
+              ).map(
+                ([key, value]) => [
+                  key,
+                  value * totalPower
+                ]
+              )
+            )
+        };
+
+        state.activeEvents.push(
+          activeEvent
+        );
+
+        addLog(
+          `${activeEvent.title} 발생: ${activeEvent.desc}`,
+          "danger"
+        );
+
+        showToast(
+          `${activeEvent.icon} ${activeEvent.title} 발생`,
+          "bad"
+        );
+
+        state.pendingEvent = null;
+
+        const stageFactor =
+          1 - (stage - 1) * 0.12;
+
+        const interval =
+          randomNumber(
+            state.mode.intervalMin,
+            state.mode.intervalMax
+          ) * stageFactor;
+
+        state.nextEventIn =
+          Math.max(
+            4.5,
+            interval
+          );
+
+        state.eventCycle =
+          state.nextEventIn;
+      }
+    }
+
+    /* ─────────────────────────────────────────
+       잔류 호르몬 및 피드백 부하 감소
+    ───────────────────────────────────────── */
+
+    function updateEffects(deltaTime) {
+      const decayRate = {
+        insulin: 0.105,
+        glucagon: 0.1,
+        sympathetic: 0.13,
+        thyroxine: 0.055,
+        sweat: 0.12,
+        adh: 0.09,
+        water: 0.18,
+        recovery: 0.12
+      };
+
+      for (
+        const key
+        of Object.keys(
+          state.effects
+        )
+      ) {
+        state.effects[key] =
+          Math.max(
+            0,
+
+            state.effects[key] *
+              Math.exp(
+                -decayRate[key] *
+                deltaTime
+              )
+          );
+      }
+
+      /*
+        부교감 회복 효과가 높을수록
+        피드백 부하가 빠르게 감소합니다.
+      */
+
+      const recoveryPower =
+        state.effects.recovery / 100;
+
+      const loadDecay =
+        1.15 +
+        recoveryPower * 7.2;
+
+      state.load.glucose =
+        Math.max(
+          0,
+          state.load.glucose -
+            loadDecay * deltaTime
+        );
+
+      state.load.temp =
+        Math.max(
+          0,
+          state.load.temp -
+            loadDecay * deltaTime
+        );
+
+      state.load.water =
+        Math.max(
+          0,
+          state.load.water -
+            loadDecay * deltaTime
+        );
+
+      /*
+        회복 모드는 다른 호르몬의
+        잔류 효과도 조금 더 빠르게 낮춥니다.
+      */
+
+      if (
+        state.effects.recovery > 3
+      ) {
+        for (
+          const key
+          of Object.keys(
+            state.effects
+          )
+        ) {
+          if (key !== "recovery") {
+            state.effects[key] *=
+              Math.exp(
+                -0.08 *
+                recoveryPower *
+                deltaTime
+              );
+          }
+        }
+      }
+    }
+
+    /* ─────────────────────────────────────────
+       반동 시간 처리
+    ───────────────────────────────────────── */
+
+    function updateRebounds(deltaTime) {
+      for (
+        const rebound
+        of state.reboundQueue
+      ) {
+        rebound.delay -=
+          deltaTime;
+
+        if (rebound.delay <= 0) {
+          rebound.duration -=
+            deltaTime;
+        }
+      }
+
+      state.reboundQueue =
+        state.reboundQueue.filter(
+          (rebound) =>
+            rebound.duration > 0
+        );
+    }
+
+    /* ─────────────────────────────────────────
+       조절 명령 실행
+    ───────────────────────────────────────── */
+
+    function useCommand(key) {
+      if (
+        !state ||
+        !state.running ||
+        state.paused
+      ) {
+        return;
+      }
+
+      const command =
+        COMMANDS[key];
+
+      if (!command) {
+        return;
+      }
+
+      /*
+        ATP가 부족하면 실행 불가
+      */
+
+      if (
+        state.energy <
+        command.cost
+      ) {
+        showToast(
+          "ATP가 부족해 명령을 실행할 수 없습니다.",
+          "bad"
+        );
+
+        return;
+      }
+
+      const currentTime =
+        state.elapsed;
+
+      /*
+        같은 명령을 2.2초 안에 다시 사용하면
+        반복 투여로 판정합니다.
+      */
+
+      const repeated =
+        currentTime -
+          (
+            state.lastActionAt[key] ??
+            -99
+          ) <
+        2.2;
+
+      const appropriate =
+        command.good(state);
+
+      const axisLoad =
+        command.axis === "recovery"
+          ? Math.max(
+              state.load.glucose,
+              state.load.temp,
+              state.load.water
+            )
+          : state.load[
+              command.axis
+            ];
+
+      /*
+        조절축 부하가 높으면
+        수용체 둔감화로 효율 감소
+      */
+
+      const efficiency =
+        command.axis === "recovery"
+          ? 1
+          : receptorEfficiency(
+              axisLoad
+            );
+
+      const repetitionPenalty =
+        repeated ? 0.76 : 1;
+
+      state.effects[
+        command.effect
+      ] = clamp(
+        state.effects[
+          command.effect
+        ] +
+          command.add *
+          efficiency *
+          repetitionPenalty,
+
+        0,
+        120
+      );
+
+      state.energy = clamp(
+        state.energy -
+          command.cost,
+
+        0,
+        100
+      );
+
+      state.lastActionAt[key] =
+        currentTime;
+
+      state.stats.actions += 1;
+      state.commandCount[key] += 1;
+
+      /*
+        적절한 조절인지 평가
+      */
+
+      if (appropriate) {
+        state.stats.good += 1;
+        state.score += 35;
+
+        showToast(
+          `${command.name}: 적절한 조절`,
+          "good"
+        );
+      } else {
+        state.stats.bad += 1;
+
+        state.stability = clamp(
+          state.stability - 1.4,
+          0,
+          100
+        );
+
+        showToast(
+          `${command.name}: 현재 수치에는 과잉 조절`,
+          "bad"
+        );
+      }
+
+      /*
+        피드백 부하 증가
+      */
+
+      if (
+        command.axis === "recovery"
+      ) {
+        state.load.glucose =
+          Math.max(
+            0,
+            state.load.glucose - 8
+          );
+
+        state.load.temp =
+          Math.max(
+            0,
+            state.load.temp - 8
+          );
+
+        state.load.water =
+          Math.max(
+            0,
+            state.load.water - 8
+          );
+      } else {
+        const loadGain =
+          (
+            repeated
+              ? 25
+              : 17
+          ) *
+          state.mode.loadGain *
+          (
+            appropriate
+              ? 1
+              : 1.28
+          );
+
+        state.load[
+          command.axis
+        ] = clamp(
+          state.load[
+            command.axis
+          ] + loadGain,
+
+          0,
+          105
+        );
+
+        /*
+          교차 부작용이 있는 명령은
+          다른 조절축의 부하도 증가시킵니다.
+        */
+
+        if (command.extraAxis) {
+          state.load[
+            command.extraAxis
+          ] = clamp(
+            state.load[
+              command.extraAxis
+            ] +
+              loadGain * 0.42,
+
+            0,
+            105
+          );
+        }
+      }
+
+      /*
+        지연된 반동 등록
+
+        부하가 높을수록,
+        잘못된 타이밍일수록,
+        반복 투여일수록 반동이 강해집니다.
+      */
+
+      if (command.rebound) {
+        const loadFactor =
+          1 + axisLoad / 115;
+
+        const badTimingFactor =
+          appropriate
+            ? 1
+            : 1.55;
+
+        const repeatFactor =
+          repeated
+            ? 1.45
+            : 1;
+
+        const finalFactor =
+          loadFactor *
+          badTimingFactor *
+          repeatFactor;
+
+        state.reboundQueue.push({
+          delay:
+            command.rebound.delay,
+
+          duration:
+            command.rebound.duration,
+
+          rates:
+            Object.fromEntries(
+              Object.entries(
+                command.rebound.rates
+              ).map(
+                ([rateKey, value]) => [
+                  rateKey,
+                  value * finalFactor
+                ]
+              )
+            )
+        });
+      }
+
+      addLog(
+        `${command.name} 실행` +
+        `${repeated ? " · 반복 투여" : ""}` +
+        `${appropriate ? " · 적절" : " · 과잉 가능"}`,
+
+        appropriate
+          ? "good"
+          : "danger"
+      );
+    }
+
+    /* ─────────────────────────────────────────
+       수용체 둔감화
+    ───────────────────────────────────────── */
+
+    function receptorEfficiency(load) {
+      if (load <= 55) {
+        return 1;
+      }
+
+      return clamp(
+        1 -
+          (load - 55) / 75,
+
+        0.35,
+        1
+      );
+    }
+
+    /* ─────────────────────────────────────────
+       수치 이탈 정도 계산
+    ───────────────────────────────────────── */
+
+    function calculateNormalizedErrors() {
+      return {
+        glucose:
+          state.glucose < 75
+            ? (
+                75 -
+                state.glucose
+              ) / 24
+
+            : state.glucose > 120
+              ? (
+                  state.glucose -
+                  120
+                ) / 38
+
+              : 0,
+
+        temp:
+          state.temp < 36.2
+            ? (
+                36.2 -
+                state.temp
+              ) / 0.8
+
+            : state.temp > 37.4
+              ? (
+                  state.temp -
+                  37.4
+                ) / 1
+
+              : 0,
+
+        osm:
+          state.osm < 280
+            ? (
+                280 -
+                state.osm
+              ) / 12
+
+            : state.osm > 300
+              ? (
+                  state.osm -
+                  300
+                ) / 15
+
+              : 0
+      };
+    }
+
+    /* ─────────────────────────────────────────
+       정상 범위 확인
+    ───────────────────────────────────────── */
+
+    function isInSafeRange() {
+      return (
+        state.glucose >= 75 &&
+        state.glucose <= 120 &&
+
+        state.temp >= 36.2 &&
+        state.temp <= 37.4 &&
+
+        state.osm >= 280 &&
+        state.osm <= 300
+      );
+    }
+
+    /* ─────────────────────────────────────────
+       기준점 진동 감지
+    ───────────────────────────────────────── */
+
+    function detectOscillation() {
+      const currentSide = {
+        glucose:
+          Math.sign(
+            state.glucose - 90
+          ),
+
+        temp:
+          Math.sign(
+            state.temp - 36.8
+          ),
+
+        osm:
+          Math.sign(
+            state.osm - 290
+          )
+      };
+
+      for (
+        const key
+        of Object.keys(currentSide)
+      ) {
+        let distance;
+
+        if (key === "glucose") {
+          distance =
+            Math.abs(
+              state.glucose - 90
+            ) / 12;
+        } else if (
+          key === "temp"
+        ) {
+          distance =
+            Math.abs(
+              state.temp - 36.8
+            ) / 0.45;
+        } else {
+          distance =
+            Math.abs(
+              state.osm - 290
+            ) / 8;
         }
 
-        function injectHormone(type) {
-            if (isShutdown) return;
-            document.getElementById('event-log').innerText = "";
+        if (
+          currentSide[key] !== 0 &&
+          state.lastSide[key] !== 0 &&
+          currentSide[key] !==
+            state.lastSide[key] &&
+          distance > 0.18
+        ) {
+          state.stats.oscillations += 1;
 
-            if (type === 'insulin') {
-                glucose -= 30;
-                checkNegativeFeedback(glucose < 60, 'box-glucose', '저혈당 쇼크! 인슐린 과다 반동 발생!');
-            } else if (type === 'glucagon') {
-                glucose += 30;
-                checkNegativeFeedback(glucose > 150, 'box-glucose', '고혈당 경고! 피드백 루프 과부하!');
-            } else if (type === 'thyroxine') {
-                temp += 1.0;
-                glucose -= 10; 
-                checkNegativeFeedback(temp > 38.5, 'box-temp', '고열 발생! 효소 변성 위험!');
-            } else if (type === 'sweat') {
-                temp -= 0.8;
-                checkNegativeFeedback(temp < 35.5, 'box-temp', '저체온증 경고! 오한 발생!');
+          if (
+            state.stats.oscillations %
+              2 ===
+            0
+          ) {
+            let name = "삼투압";
+
+            if (
+              key === "glucose"
+            ) {
+              name = "혈당";
+            } else if (
+              key === "temp"
+            ) {
+              name = "체온";
             }
-            updateUI();
+
+            addLog(
+              `${name} 기준점 진동 감지`,
+              "danger"
+            );
+          }
         }
 
-        function checkNegativeFeedback(condition, boxId, msg) {
-            if (condition) {
-                document.getElementById('log').innerText = msg;
-                let box = document.getElementById(boxId);
-                box.classList.add('shake');
-                
-                let buttons = document.querySelectorAll('button');
-                buttons.forEach(btn => btn.disabled = true);
-                
-                setTimeout(() => {
-                    if(isShutdown) return;
-                    box.classList.remove('shake');
-                    document.getElementById('log').innerText = "항상성 복구 중... 제어 권한 회복.";
-                    buttons.forEach(btn => btn.disabled = false);
-                }, 3000);
-            } else {
-                document.getElementById('log').innerText = "처방 완료. 바이탈 안정화 중.";
-            }
+        if (distance > 0.18) {
+          state.lastSide[key] =
+            currentSide[key];
+        }
+      }
+    }
+
+    /* ─────────────────────────────────────────
+       게임 단계
+    ───────────────────────────────────────── */
+
+    function getStage() {
+      const ratio =
+        state.elapsed /
+        state.mode.duration;
+
+      if (ratio < 0.34) {
+        return 1;
+      }
+
+      if (ratio < 0.68) {
+        return 2;
+      }
+
+      return 3;
+    }
+
+    /* ─────────────────────────────────────────
+       화면 렌더링
+    ───────────────────────────────────────── */
+
+    function render() {
+      if (!state) {
+        return;
+      }
+
+      const maxLoad =
+        Math.max(
+          state.load.glucose,
+          state.load.temp,
+          state.load.water
+        );
+
+      const averageLoad =
+        (
+          state.load.glucose +
+          state.load.temp +
+          state.load.water
+        ) / 3;
+
+      /*
+        전체 피드백 부하는
+        평균 55% + 가장 높은 축 45%로 계산합니다.
+      */
+
+      const totalLoad =
+        clamp(
+          averageLoad * 0.55 +
+          maxLoad * 0.45,
+
+          0,
+          100
+        );
+
+      $("timeText").textContent =
+        formatTime(
+          state.timeLeft
+        );
+
+      $("scoreText").textContent =
+        Math.round(
+          state.score
+        ).toLocaleString();
+
+      $("comboText").textContent =
+        `×${state.combo.toFixed(2)}`;
+
+      setMainBar(
+        "stability",
+        state.stability
+      );
+
+      setMainBar(
+        "energy",
+        state.energy
+      );
+
+      $("totalLoadText").textContent =
+        `${Math.round(totalLoad)}%`;
+
+      $("totalLoadFill").style.width =
+        `${totalLoad}%`;
+
+      renderVital(
+        "glucose",
+        state.glucose,
+        state.rates.glucose,
+        40,
+        220,
+        75,
+        120,
+        1
+      );
+
+      renderVital(
+        "temp",
+        state.temp,
+        state.rates.temp,
+        34,
+        41,
+        36.2,
+        37.4,
+        2
+      );
+
+      renderVital(
+        "osm",
+        state.osm,
+        state.rates.osm,
+        255,
+        335,
+        280,
+        300,
+        1
+      );
+
+      renderLoad(
+        "glucose",
+        state.load.glucose
+      );
+
+      renderLoad(
+        "temp",
+        state.load.temp
+      );
+
+      renderLoad(
+        "water",
+        state.load.water
+      );
+
+      /*
+        버튼 아래 잔류 효과 표시
+      */
+
+      for (
+        const key
+        of Object.keys(
+          state.effects
+        )
+      ) {
+        const doseElement =
+          $(`dose-${key}`);
+
+        if (doseElement) {
+          doseElement.style.width =
+            `${clamp(
+              state.effects[key],
+              0,
+              100
+            )}%`;
+        }
+      }
+
+      const stage = getStage();
+
+      $("stageChip").textContent =
+        `STAGE ${stage}`;
+
+      if (isInSafeRange()) {
+        $("bodyStateChip").textContent =
+          "항상성 유지";
+
+        $("bodyStateChip").style.color =
+          "var(--green)";
+      } else if (
+        maxLoad > 75
+      ) {
+        $("bodyStateChip").textContent =
+          "피드백 과부하";
+
+        $("bodyStateChip").style.color =
+          "var(--red)";
+      } else {
+        $("bodyStateChip").textContent =
+          "보정 필요";
+
+        $("bodyStateChip").style.color =
+          "var(--yellow)";
+      }
+
+      renderEventPanel();
+      renderActiveEvents();
+    }
+
+    /* ─────────────────────────────────────────
+       생체 수치 화면 표시
+    ───────────────────────────────────────── */
+
+    function renderVital(
+      key,
+      value,
+      rate,
+      min,
+      max,
+      safeMin,
+      safeMax,
+      decimals
+    ) {
+      const status =
+        getVitalStatus(
+          value,
+          safeMin,
+          safeMax
+        );
+
+      const prefix =
+        key === "temp"
+          ? "temp"
+          : key;
+
+      $(`${prefix}Text`).textContent =
+        value.toFixed(decimals);
+
+      let arrow = "→";
+
+      const threshold =
+        key === "temp"
+          ? 0.004
+          : 0.08;
+
+      if (rate > threshold) {
+        arrow = "↑";
+      } else if (
+        rate < -threshold
+      ) {
+        arrow = "↓";
+      }
+
+      $(`${prefix}Trend`).textContent =
+        `${arrow} ${Math.abs(rate).toFixed(
+          key === "temp" ? 2 : 1
+        )}/s`;
+
+      $(`${prefix}Trend`).style.color =
+        arrow === "→"
+          ? "var(--muted)"
+          : "var(--yellow)";
+
+      const markerPosition =
+        clamp(
+          (
+            (value - min) /
+            (max - min)
+          ) * 100,
+
+          0,
+          100
+        );
+
+      $(`${prefix}Marker`).style.left =
+        `${markerPosition}%`;
+
+      $(`${prefix}State`).textContent =
+        status.label;
+
+      $(`${prefix}State`).className =
+        `vital-state ${status.className}`;
+
+      $(`${prefix}Card`).className =
+        `vital ${status.cardClass}`;
+    }
+
+    function getVitalStatus(
+      value,
+      safeMin,
+      safeMax
+    ) {
+      const safeWidth =
+        safeMax - safeMin;
+
+      const hardLow =
+        safeMin -
+        safeWidth * 0.9;
+
+      const hardHigh =
+        safeMax +
+        safeWidth * 1.3;
+
+      if (value < hardLow) {
+        return {
+          label: "위험 저하",
+          className: "danger",
+          cardClass: "critical"
+        };
+      }
+
+      if (value > hardHigh) {
+        return {
+          label: "위험 상승",
+          className: "danger",
+          cardClass: "critical"
+        };
+      }
+
+      if (value < safeMin) {
+        return {
+          label: "낮음",
+          className: "warn",
+          cardClass: "low"
+        };
+      }
+
+      if (value > safeMax) {
+        return {
+          label: "높음",
+          className: "warn",
+          cardClass: "high"
+        };
+      }
+
+      return {
+        label: "정상",
+        className: "",
+        cardClass: ""
+      };
+    }
+
+    function renderLoad(
+      key,
+      value
+    ) {
+      $(`${key}LoadText`).textContent =
+        `${Math.round(value)}%`;
+
+      $(`${key}LoadFill`).style.width =
+        `${clamp(
+          value,
+          0,
+          100
+        )}%`;
+    }
+
+    /* ─────────────────────────────────────────
+       외부 사건 화면 표시
+    ───────────────────────────────────────── */
+
+    function renderEventPanel() {
+      const eventCard =
+        $("eventCard");
+
+      if (state.pendingEvent) {
+        const eventData =
+          state.pendingEvent;
+
+        eventCard.className =
+          "event-card warning";
+
+        $("eventIcon").textContent =
+          eventData.icon;
+
+        $("eventLabel").textContent =
+          "사전 경고";
+
+        $("eventTitle").textContent =
+          eventData.title;
+
+        $("eventDesc").textContent =
+          eventData.desc;
+
+        $("eventCountLabel").textContent =
+          "발생까지";
+
+        $("eventCountText").textContent =
+          `${Math.max(
+            0,
+            state.nextEventIn
+          ).toFixed(1)}초`;
+      } else {
+        eventCard.className =
+          "event-card";
+
+        $("eventIcon").textContent =
+          "◎";
+
+        $("eventLabel").textContent =
+          "관측 중";
+
+        $("eventTitle").textContent =
+          "다음 사건을 분석하고 있습니다";
+
+        $("eventDesc").textContent =
+          "수치와 잔류 호르몬을 안정시키며 다음 경고를 기다리세요.";
+
+        $("eventCountLabel").textContent =
+          "다음 사건까지";
+
+        $("eventCountText").textContent =
+          `${Math.max(
+            0,
+            state.nextEventIn
+          ).toFixed(1)}초`;
+      }
+
+      const progress =
+        state.eventCycle
+          ? clamp(
+              (
+                1 -
+                state.nextEventIn /
+                  state.eventCycle
+              ) * 100,
+
+              0,
+              100
+            )
+          : 0;
+
+      $("eventProgress").style.width =
+        `${progress}%`;
+    }
+
+    function renderActiveEvents() {
+      const container =
+        $("activeEvents");
+
+      if (
+        !state.activeEvents.length
+      ) {
+        container.innerHTML = `
+          <p class="empty">
+            현재 지속 중인 외부 사건이 없습니다.
+          </p>
+        `;
+
+        return;
+      }
+
+      container.innerHTML =
+        state.activeEvents
+          .map(
+            (activeEvent) => `
+              <div class="active-event">
+                <span>
+                  ${activeEvent.icon}
+                  ${activeEvent.title}
+                </span>
+
+                <strong>
+                  ${Math.ceil(
+                    activeEvent.remaining
+                  )}초
+                </strong>
+              </div>
+            `
+          )
+          .join("");
+    }
+
+    /* ─────────────────────────────────────────
+       상단 자원 막대
+    ───────────────────────────────────────── */
+
+    function setMainBar(
+      name,
+      value
+    ) {
+      $(`${name}Text`).textContent =
+        `${Math.round(value)}%`;
+
+      $(`${name}Fill`).style.width =
+        `${clamp(
+          value,
+          0,
+          100
+        )}%`;
+    }
+
+    /* ─────────────────────────────────────────
+       시간 표시
+    ───────────────────────────────────────── */
+
+    function formatTime(seconds) {
+      const totalSeconds =
+        Math.max(
+          0,
+          Math.ceil(seconds)
+        );
+
+      const minutes =
+        Math.floor(
+          totalSeconds / 60
+        );
+
+      const remainingSeconds =
+        totalSeconds % 60;
+
+      return (
+        String(minutes).padStart(
+          2,
+          "0"
+        ) +
+        ":" +
+        String(
+          remainingSeconds
+        ).padStart(
+          2,
+          "0"
+        )
+      );
+    }
+
+    /* ─────────────────────────────────────────
+       일시정지
+    ───────────────────────────────────────── */
+
+    function togglePause() {
+      if (
+        !state ||
+        !state.running
+      ) {
+        return;
+      }
+
+      state.paused =
+        !state.paused;
+
+      $("pauseBtn").textContent =
+        state.paused
+          ? "계속하기"
+          : "일시정지";
+
+      if (!state.paused) {
+        lastTime =
+          performance.now();
+      }
+
+      showToast(
+        state.paused
+          ? "관제가 일시정지되었습니다."
+          : "관제를 재개했습니다."
+      );
+    }
+
+    /* ─────────────────────────────────────────
+       게임 종료 및 결과
+    ───────────────────────────────────────── */
+
+    function endGame(
+      success,
+      reason
+    ) {
+      if (
+        !state ||
+        !state.running
+      ) {
+        return;
+      }
+
+      state.running = false;
+
+      $("pauseBtn").disabled =
+        true;
+
+      document
+        .querySelectorAll(".control-btn")
+        .forEach((button) => {
+          button.disabled = true;
+        });
+
+      const safeRate =
+        state.elapsed > 0
+          ? (
+              state.stats.safeSeconds /
+              state.elapsed
+            ) * 100
+          : 0;
+
+      const accuracy =
+        state.stats.actions
+          ? (
+              state.stats.good /
+              state.stats.actions
+            ) * 100
+          : 0;
+
+      const gradeScore =
+        safeRate * 0.45 +
+        accuracy * 0.25 +
+        state.stability * 0.2 +
+        Math.max(
+          0,
+          100 -
+            state.stats.maxLoad
+        ) * 0.1;
+
+      let grade = "D";
+
+      if (gradeScore >= 88) {
+        grade = "S";
+      } else if (
+        gradeScore >= 76
+      ) {
+        grade = "A";
+      } else if (
+        gradeScore >= 63
+      ) {
+        grade = "B";
+      } else if (
+        gradeScore >= 48
+      ) {
+        grade = "C";
+      }
+
+      const mostUsedCommand =
+        Object.entries(
+          state.commandCount
+        ).sort(
+          (first, second) =>
+            second[1] -
+            first[1]
+        )[0]?.[0] ||
+        "recovery";
+
+      $("resultTitle").textContent =
+        success
+          ? "임무 완료"
+          : "생체 시스템 셧다운";
+
+      $("resultReason").textContent =
+        reason;
+
+      $("resultScore").textContent =
+        Math.round(
+          state.score
+        ).toLocaleString();
+
+      $("resultGrade").textContent =
+        grade;
+
+      $("resultSafe").textContent =
+        `${safeRate.toFixed(1)}%`;
+
+      $("resultAccuracy").textContent =
+        `${accuracy.toFixed(1)}%`;
+
+      $("resultOsc").textContent =
+        `${state.stats.oscillations}회`;
+
+      $("resultLoad").textContent =
+        `${Math.round(
+          state.stats.maxLoad
+        )}%`;
+
+      $("resultLesson").innerHTML = `
+        <strong>학습 분석:</strong>
+        가장 많이 사용한 명령은
+        <b>
+          ${COMMANDS[mostUsedCommand].name}
+        </b>입니다.
+        ${COMMANDS[mostUsedCommand].lesson}
+      `;
+
+      $("resultModal").classList.remove(
+        "hidden"
+      );
+    }
+
+    /* ─────────────────────────────────────────
+       관제 기록
+    ───────────────────────────────────────── */
+
+    function addLog(
+      message,
+      type = ""
+    ) {
+      if (!state) {
+        return;
+      }
+
+      const listItem =
+        document.createElement("li");
+
+      if (type === "danger") {
+        listItem.classList.add(
+          "danger-log"
+        );
+      }
+
+      if (type === "good") {
+        listItem.classList.add(
+          "good-log"
+        );
+      }
+
+      listItem.innerHTML = `
+        <time>
+          ${formatTime(
+            state.timeLeft
+          )}
+        </time>
+        ${message}
+      `;
+
+      $("logList").prepend(
+        listItem
+      );
+
+      limitLogLength();
+    }
+
+    function limitLogLength() {
+      const list =
+        $("logList");
+
+      while (
+        list.children.length > 9
+      ) {
+        list.lastElementChild.remove();
+      }
+    }
+
+    /* ─────────────────────────────────────────
+       알림 메시지
+    ───────────────────────────────────────── */
+
+    function showToast(
+      message,
+      type = ""
+    ) {
+      const toast =
+        document.createElement("div");
+
+      toast.className =
+        `toast ${type}`;
+
+      toast.textContent =
+        message;
+
+      $("toastStack").appendChild(
+        toast
+      );
+
+      setTimeout(
+        () => toast.remove(),
+        1800
+      );
+    }
+
+    /* ─────────────────────────────────────────
+       버튼 연결
+    ───────────────────────────────────────── */
+
+    document
+      .querySelectorAll(".control-btn")
+      .forEach((button) => {
+        button.addEventListener(
+          "click",
+          () => {
+            useCommand(
+              button.dataset.command
+            );
+          }
+        );
+      });
+
+    $("startBtn").addEventListener(
+      "click",
+      startGame
+    );
+
+    $("restartBtn").addEventListener(
+      "click",
+      () => {
+        $("resultModal").classList.add(
+          "hidden"
+        );
+
+        $("startModal").classList.remove(
+          "hidden"
+        );
+      }
+    );
+
+    $("pauseBtn").addEventListener(
+      "click",
+      togglePause
+    );
+
+    $("helpBtn").addEventListener(
+      "click",
+      () => {
+        $("helpModal").classList.remove(
+          "hidden"
+        );
+      }
+    );
+
+    $("introHelpBtn").addEventListener(
+      "click",
+      () => {
+        $("helpModal").classList.remove(
+          "hidden"
+        );
+      }
+    );
+
+    $("closeHelpBtn").addEventListener(
+      "click",
+      () => {
+        $("helpModal").classList.add(
+          "hidden"
+        );
+      }
+    );
+
+    $("clearLogBtn").addEventListener(
+      "click",
+      () => {
+        $("logList").innerHTML = "";
+      }
+    );
+
+    /* ─────────────────────────────────────────
+       키보드 조작
+    ───────────────────────────────────────── */
+
+    document.addEventListener(
+      "keydown",
+      (event) => {
+        if (
+          event.code === "Space"
+        ) {
+          event.preventDefault();
+          togglePause();
+          return;
         }
 
-        // 생존 타이머
-        timerInterval = setInterval(() => {
-            if (!isShutdown) {
-                survivalTime++;
-                document.getElementById('timer').innerText = survivalTime;
-            }
-        }, 1000);
+        if (
+          /^[1-8]$/.test(
+            event.key
+          )
+        ) {
+          const keyCommands = [
+            "insulin",
+            "glucagon",
+            "sympathetic",
+            "thyroxine",
+            "sweat",
+            "adh",
+            "water",
+            "recovery"
+          ];
 
-        // 실시간 환경 변화 및 돌발 이벤트
-        setInterval(() => {
-            if (isShutdown) return;
-            
-            // 기본 대사량 (점진적 체온 하락 및 혈당 소모)
-            glucose -= (Math.random() * 3); 
-            temp -= (Math.random() * 0.15); 
-            
-            // 20% 확률로 돌발 이벤트 발생
-            if (Math.random() < 0.2) {
-                let eventType = Math.random();
-                let eventLog = document.getElementById('event-log');
-                if (eventType < 0.5) {
-                    glucose += 40;
-                    eventLog.innerText = "⚠️ 경고: 숙주가 초콜릿 케이크를 섭취했습니다! (혈당 급상승)";
-                } else {
-                    temp -= 1.2;
-                    eventLog.innerText = "⚠️ 경고: 숙주가 겨울철 야외로 나갔습니다! (체온 급강하)";
-                }
-            }
-            updateUI();
-        }, 3000);
-    </script>
+          useCommand(
+            keyCommands[
+              Number(event.key) - 1
+            ]
+          );
+        }
+      }
+    );
+
+    /*
+      시작 화면 뒤에도 기본 수치가 보이도록
+      임시 게임 상태를 렌더링합니다.
+    */
+
+    state = makeFreshState();
+    state.running = false;
+
+    render();
+  </script>
 </body>
 </html>
