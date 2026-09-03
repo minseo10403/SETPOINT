@@ -1,1 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Setpoint: Homeostasis Command</title>
+    <style>
+        body { background-color: #121212; color: #00ffcc; font-family: 'Courier New', Courier, monospace; text-align: center; margin-top: 50px; }
+        .dashboard { display: flex; justify-content: center; gap: 30px; margin-bottom: 30px; }
+        .stat-box { border: 2px solid #333; padding: 20px; border-radius: 10px; width: 200px; background: #1e1e1e; }
+        .bar-bg { width: 100%; height: 20px; background: #444; margin-top: 10px; border-radius: 5px; overflow: hidden; }
+        .bar-fill { height: 100%; width: 50%; transition: width 0.3s; }
+        button { background: #00ffcc; color: #121212; border: none; padding: 10px 20px; margin: 5px; cursor: pointer; font-weight: bold; border-radius: 5px; }
+        button:active { background: #00b38f; }
+        button:disabled { background: #555; color: #222; cursor: not-allowed; }
+        #log { margin-top: 20px; color: #ff5555; height: 50px; }
+        .shake { animation: shake 0.5s infinite; border-color: red !important; }
+        @keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 100% { transform: translate(-1px, -2px) rotate(-1deg); } }
+    </style>
+</head>
+<body>
+    <h1>SETPOINT: 관제실</h1>
+    <div class="dashboard">
+        <div class="stat-box" id="box-glucose">
+            <h3>혈당 (Glucose)</h3>
+            <div id="val-glucose">100 mg/dL</div>
+            <div class="bar-bg"><div class="bar-fill" id="bar-glucose" style="background: #3fb950;"></div></div>
+        </div>
+        <div class="stat-box" id="box-temp">
+            <h3>체온 (Temp)</h3>
+            <div id="val-temp">36.5 °C</div>
+            <div class="bar-bg"><div class="bar-fill" id="bar-temp" style="background: #f85149;"></div></div>
+        </div>
+    </div>
+    
+    <div>
+        <button id="btn-insulin" onclick="injectHormone('insulin')">인슐린 투여 (혈당↓)</button>
+        <button id="btn-glucagon" onclick="injectHormone('glucagon')">글루카곤 투여 (혈당↑)</button>
+        <button id="btn-thyroxine" onclick="injectHormone('thyroxine')">티록신 분비 (체온↑)</button>
+    </div>
+    
+    <div id="log">시스템 정상 가동 중...</div>
 
+    <script>
+        let glucose = 100;
+        let temp = 36.5;
+        let isShutdown = false;
+
+        function updateUI() {
+            document.getElementById('val-glucose').innerText = Math.round(glucose) + " mg/dL";
+            document.getElementById('bar-glucose').style.width = Math.min(100, (glucose / 200) * 100) + "%";
+            
+            document.getElementById('val-temp').innerText = temp.toFixed(1) + " °C";
+            document.getElementById('bar-temp').style.width = Math.min(100, ((temp - 34) / 6) * 100) + "%";
+
+            // 사망 판정
+            if (glucose <= 40 || glucose >= 200 || temp <= 34 || temp >= 40) {
+                document.getElementById('log').innerText = "치명적 수치 도달. 생체 시스템 정지.";
+                isShutdown = true;
+            }
+        }
+
+        function injectHormone(type) {
+            if (isShutdown) return;
+
+            if (type === 'insulin') {
+                glucose -= 30;
+                checkNegativeFeedback(glucose < 60, 'box-glucose', '저혈당 쇼크! 인슐린 과다 반동 발생!');
+            } else if (type === 'glucagon') {
+                glucose += 30;
+                checkNegativeFeedback(glucose > 150, 'box-glucose', '고혈당 경고! 피드백 루프 과부하!');
+            } else if (type === 'thyroxine') {
+                temp += 1.0;
+                glucose -= 10; // 에너지 소모 부작용
+                checkNegativeFeedback(temp > 38.5, 'box-temp', '고열 발생! 효소 변성 위험!');
+            }
+            updateUI();
+        }
+
+        function checkNegativeFeedback(condition, boxId, msg) {
+            if (condition) {
+                document.getElementById('log').innerText = msg;
+                let box = document.getElementById(boxId);
+                box.classList.add('shake');
+                
+                // 버튼 일시 정지 (음성 피드백 셧다운 구현)
+                let buttons = document.querySelectorAll('button');
+                buttons.forEach(btn => btn.disabled = true);
+                
+                setTimeout(() => {
+                    box.classList.remove('shake');
+                    document.getElementById('log').innerText = "항상성 복구 중... 제어 권한 회복.";
+                    buttons.forEach(btn => btn.disabled = false);
+                }, 3000);
+            } else {
+                document.getElementById('log').innerText = "호르몬 투여 완료.";
+            }
+        }
+
+        // 실시간 환경 변화 (식사, 추위 등)
+        setInterval(() => {
+            if (isShutdown) return;
+            // 자연적인 변동 및 외부 이벤트 시뮬레이션
+            glucose += (Math.random() * 6 - 2); 
+            temp -= (Math.random() * 0.2); 
+            updateUI();
+        }, 2000);
+    </script>
+</body>
+</html>
