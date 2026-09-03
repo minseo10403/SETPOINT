@@ -2,23 +2,38 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Setpoint: Homeostasis Command</title>
+    <title>Setpoint: Unit-7</title>
     <style>
-        body { background-color: #121212; color: #00ffcc; font-family: 'Courier New', Courier, monospace; text-align: center; margin-top: 50px; }
+        body { background-color: #121212; color: #00ffcc; font-family: 'Courier New', Courier, monospace; text-align: center; margin-top: 30px; }
+        h1 { margin-bottom: 5px; color: #ffeb3b; }
+        .story { color: #888; font-size: 14px; margin-bottom: 20px; }
+        #avatar { font-size: 80px; margin: 10px 0; transition: transform 0.2s; }
+        .timer-box { font-size: 20px; font-weight: bold; color: #fff; margin-bottom: 20px; }
+        
         .dashboard { display: flex; justify-content: center; gap: 30px; margin-bottom: 30px; }
-        .stat-box { border: 2px solid #333; padding: 20px; border-radius: 10px; width: 200px; background: #1e1e1e; }
+        .stat-box { border: 2px solid #333; padding: 20px; border-radius: 10px; width: 200px; background: #1e1e1e; position: relative; }
         .bar-bg { width: 100%; height: 20px; background: #444; margin-top: 10px; border-radius: 5px; overflow: hidden; }
         .bar-fill { height: 100%; width: 50%; transition: width 0.3s; }
-        button { background: #00ffcc; color: #121212; border: none; padding: 10px 20px; margin: 5px; cursor: pointer; font-weight: bold; border-radius: 5px; }
-        button:active { background: #00b38f; }
+        
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 450px; margin: 0 auto; }
+        button { background: #00ffcc; color: #121212; border: none; padding: 15px; cursor: pointer; font-weight: bold; border-radius: 5px; font-size: 14px; }
+        button:active { background: #00b38f; transform: scale(0.98); }
         button:disabled { background: #555; color: #222; cursor: not-allowed; }
-        #log { margin-top: 20px; color: #ff5555; height: 50px; }
+        
+        #log { margin-top: 30px; font-size: 18px; font-weight: bold; color: #ff5555; height: 30px; }
+        #event-log { color: #ffeb3b; height: 20px; margin-top: 10px; font-style: italic; }
+        
         .shake { animation: shake 0.5s infinite; border-color: red !important; }
         @keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 100% { transform: translate(-1px, -2px) rotate(-1deg); } }
     </style>
 </head>
 <body>
-    <h1>SETPOINT: 관제실</h1>
+    <h1>SETPOINT: 프로젝트 생명유지</h1>
+    <div class="story">요원 Unit-7, 환자의 항상성을 사수하십시오.</div>
+    
+    <div class="timer-box">생존 시간: <span id="timer">0</span>초</div>
+    <div id="avatar">😊</div>
+    
     <div class="dashboard">
         <div class="stat-box" id="box-glucose">
             <h3>혈당 (Glucose)</h3>
@@ -32,35 +47,51 @@
         </div>
     </div>
     
-    <div>
-        <button id="btn-insulin" onclick="injectHormone('insulin')">인슐린 투여 (혈당↓)</button>
-        <button id="btn-glucagon" onclick="injectHormone('glucagon')">글루카곤 투여 (혈당↑)</button>
-        <button id="btn-thyroxine" onclick="injectHormone('thyroxine')">티록신 분비 (체온↑)</button>
+    <div class="controls">
+        <button id="btn-insulin" onclick="injectHormone('insulin')">인슐린 투여 (혈당 30↓)</button>
+        <button id="btn-glucagon" onclick="injectHormone('glucagon')">글루카곤 투여 (혈당 30↑)</button>
+        <button id="btn-thyroxine" onclick="injectHormone('thyroxine')">티록신 분비 (체온 1.0↑, 혈당 10↓)</button>
+        <button id="btn-sweat" onclick="injectHormone('sweat')" style="background: #4da6ff;">땀 분비 (체온 0.8↓)</button>
     </div>
     
     <div id="log">시스템 정상 가동 중...</div>
+    <div id="event-log"></div>
 
     <script>
         let glucose = 100;
         let temp = 36.5;
         let isShutdown = false;
+        let survivalTime = 0;
+        let timerInterval;
 
         function updateUI() {
             document.getElementById('val-glucose').innerText = Math.round(glucose) + " mg/dL";
-            document.getElementById('bar-glucose').style.width = Math.min(100, (glucose / 200) * 100) + "%";
+            document.getElementById('bar-glucose').style.width = Math.min(100, Math.max(0, (glucose / 200) * 100)) + "%";
             
             document.getElementById('val-temp').innerText = temp.toFixed(1) + " °C";
-            document.getElementById('bar-temp').style.width = Math.min(100, ((temp - 34) / 6) * 100) + "%";
+            document.getElementById('bar-temp').style.width = Math.min(100, Math.max(0, ((temp - 34) / 6) * 100)) + "%";
 
-            // 사망 판정
+            let avatar = document.getElementById('avatar');
             if (glucose <= 40 || glucose >= 200 || temp <= 34 || temp >= 40) {
-                document.getElementById('log').innerText = "치명적 수치 도달. 생체 시스템 정지.";
+                document.getElementById('log').innerText = "치명적 수치 도달. 숙주 사망. 시스템 정지.";
+                avatar.innerText = "💀";
                 isShutdown = true;
+                clearInterval(timerInterval);
+                document.querySelectorAll('button').forEach(btn => btn.disabled = true);
+            } else if (temp > 38.5) {
+                avatar.innerText = "🥵";
+            } else if (temp < 35.5) {
+                avatar.innerText = "🥶";
+            } else if (glucose > 160 || glucose < 60) {
+                avatar.innerText = "😵‍💫";
+            } else {
+                avatar.innerText = "😊";
             }
         }
 
         function injectHormone(type) {
             if (isShutdown) return;
+            document.getElementById('event-log').innerText = "";
 
             if (type === 'insulin') {
                 glucose -= 30;
@@ -70,8 +101,11 @@
                 checkNegativeFeedback(glucose > 150, 'box-glucose', '고혈당 경고! 피드백 루프 과부하!');
             } else if (type === 'thyroxine') {
                 temp += 1.0;
-                glucose -= 10; // 에너지 소모 부작용
+                glucose -= 10; 
                 checkNegativeFeedback(temp > 38.5, 'box-temp', '고열 발생! 효소 변성 위험!');
+            } else if (type === 'sweat') {
+                temp -= 0.8;
+                checkNegativeFeedback(temp < 35.5, 'box-temp', '저체온증 경고! 오한 발생!');
             }
             updateUI();
         }
@@ -82,28 +116,50 @@
                 let box = document.getElementById(boxId);
                 box.classList.add('shake');
                 
-                // 버튼 일시 정지 (음성 피드백 셧다운 구현)
                 let buttons = document.querySelectorAll('button');
                 buttons.forEach(btn => btn.disabled = true);
                 
                 setTimeout(() => {
+                    if(isShutdown) return;
                     box.classList.remove('shake');
                     document.getElementById('log').innerText = "항상성 복구 중... 제어 권한 회복.";
                     buttons.forEach(btn => btn.disabled = false);
                 }, 3000);
             } else {
-                document.getElementById('log').innerText = "호르몬 투여 완료.";
+                document.getElementById('log').innerText = "처방 완료. 바이탈 안정화 중.";
             }
         }
 
-        // 실시간 환경 변화 (식사, 추위 등)
+        // 생존 타이머
+        timerInterval = setInterval(() => {
+            if (!isShutdown) {
+                survivalTime++;
+                document.getElementById('timer').innerText = survivalTime;
+            }
+        }, 1000);
+
+        // 실시간 환경 변화 및 돌발 이벤트
         setInterval(() => {
             if (isShutdown) return;
-            // 자연적인 변동 및 외부 이벤트 시뮬레이션
-            glucose += (Math.random() * 6 - 2); 
-            temp -= (Math.random() * 0.2); 
+            
+            // 기본 대사량 (점진적 체온 하락 및 혈당 소모)
+            glucose -= (Math.random() * 3); 
+            temp -= (Math.random() * 0.15); 
+            
+            // 20% 확률로 돌발 이벤트 발생
+            if (Math.random() < 0.2) {
+                let eventType = Math.random();
+                let eventLog = document.getElementById('event-log');
+                if (eventType < 0.5) {
+                    glucose += 40;
+                    eventLog.innerText = "⚠️ 경고: 숙주가 초콜릿 케이크를 섭취했습니다! (혈당 급상승)";
+                } else {
+                    temp -= 1.2;
+                    eventLog.innerText = "⚠️ 경고: 숙주가 겨울철 야외로 나갔습니다! (체온 급강하)";
+                }
+            }
             updateUI();
-        }, 2000);
+        }, 3000);
     </script>
 </body>
 </html>
