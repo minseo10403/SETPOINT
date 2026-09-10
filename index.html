@@ -3,44 +3,46 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    name="description"
+    content="혈당, 체온, 삼투압을 조절하며 항상성을 지키는 생명과학 게임 Setpoint"
+  />
 
   <title>Setpoint: Homeostasis Command</title>
 
   <style>
     :root {
-      --bg: #111315;
-      --panel: #1a1d20;
+      --bg: #101214;
+      --panel: #191c1f;
       --panel-2: #22262a;
-      --line: #32383d;
+      --panel-3: #2a2f33;
+      --line: #343a3f;
 
       --text: #f2f7f6;
-      --muted: #a8b2b0;
+      --muted: #9ca8a5;
 
       --mint: #2ee6bd;
-      --mint-dark: #123d35;
+      --mint-soft: rgba(46, 230, 189, 0.12);
 
       --yellow: #ffd166;
       --red: #ff6b6b;
       --blue: #74b9ff;
+      --purple: #c69cff;
 
-      --shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+      --shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
     }
 
     * {
       box-sizing: border-box;
     }
 
+    html {
+      color-scheme: dark;
+    }
+
     body {
       margin: 0;
       min-height: 100vh;
-
-      background:
-        radial-gradient(
-          circle at 50% -10%,
-          rgba(46, 230, 189, 0.12),
-          transparent 32rem
-        ),
-        var(--bg);
 
       color: var(--text);
 
@@ -49,20 +51,75 @@
         Pretendard,
         "Noto Sans KR",
         system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
         sans-serif;
+
+      background:
+        radial-gradient(
+          circle at 50% -10%,
+          rgba(46, 230, 189, 0.13),
+          transparent 34rem
+        ),
+        var(--bg);
+
+      overflow-x: hidden;
     }
 
     button {
       font: inherit;
     }
 
-    .app {
-      width: min(1080px, calc(100% - 28px));
-      margin: 0 auto;
-      padding: 24px 0 40px;
+    button:focus-visible {
+      outline: 3px solid rgba(46, 230, 189, 0.4);
+      outline-offset: 2px;
     }
 
-    /* 상단 제목 */
+    .hidden {
+      display: none !important;
+    }
+
+    .app {
+      width: min(1120px, calc(100% - 24px));
+      margin: 0 auto;
+      padding: 20px 0 36px;
+
+      position: relative;
+      z-index: 1;
+    }
+
+    .app.impact {
+      animation: impact 0.36s ease;
+    }
+
+    @keyframes impact {
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+
+      25% {
+        transform: translateX(-5px);
+      }
+
+      55% {
+        transform: translateX(4px);
+      }
+
+      78% {
+        transform: translateX(-2px);
+      }
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    /* 상단 */
 
     .topbar {
       display: flex;
@@ -70,13 +127,13 @@
       justify-content: space-between;
 
       gap: 18px;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 11px;
     }
 
     .brand-mark {
@@ -86,168 +143,355 @@
       display: grid;
       place-items: center;
 
-      border-radius: 14px;
+      border-radius: 13px;
 
+      color: #061410;
       background: var(--mint);
-      color: #071713;
 
-      font-weight: 900;
+      font-weight: 950;
       letter-spacing: -0.05em;
+
+      box-shadow:
+        0 0 24px rgba(46, 230, 189, 0.18);
     }
 
     .brand h1 {
       margin: 0;
+
       font-size: 1.35rem;
+      line-height: 1;
     }
 
     .brand p {
-      margin: 3px 0 0;
+      margin: 5px 0 0;
 
       color: var(--muted);
-      font-size: 0.82rem;
+      font-size: 0.76rem;
     }
 
     .top-actions {
       display: flex;
-      gap: 8px;
+      gap: 7px;
     }
 
-    .ghost-button,
+    .icon-button,
     .main-button,
-    .control-button {
+    .control-button,
+    .boost-button {
       border: 0;
-      border-radius: 12px;
-
       cursor: pointer;
 
       transition:
         transform 0.15s ease,
+        border-color 0.15s ease,
         background 0.15s ease,
         opacity 0.15s ease;
     }
 
-    .ghost-button {
-      padding: 10px 13px;
+    .icon-button:hover,
+    .main-button:hover,
+    .control-button:hover,
+    .boost-button:hover {
+      transform: translateY(-1px);
+    }
 
-      background: var(--panel-2);
+    .icon-button {
+      min-height: 40px;
+      padding: 9px 12px;
+
+      border-radius: 11px;
+
       color: var(--text);
+      background: var(--panel-2);
 
       border: 1px solid var(--line);
     }
 
-    .ghost-button:hover,
-    .control-button:hover,
-    .main-button:hover {
-      transform: translateY(-1px);
-    }
-
-    .ghost-button:disabled,
-    .control-button:disabled {
-      opacity: 0.4;
+    .icon-button:disabled,
+    .control-button:disabled,
+    .boost-button:disabled {
+      opacity: 0.38;
       cursor: not-allowed;
       transform: none;
     }
 
-    /* 상단 상태 정보 */
+    /* HUD */
 
-    .summary {
+    .hud {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
 
-      gap: 10px;
-      margin-bottom: 12px;
+      gap: 9px;
+      margin-bottom: 10px;
     }
 
-    .summary-item,
-    .event-panel,
-    .stat-card,
-    .message-panel {
+    .hud-item {
+      padding: 12px 14px;
+
+      border-radius: 14px;
+
       background: var(--panel);
       border: 1px solid var(--line);
-      box-shadow: var(--shadow);
     }
 
-    .summary-item {
-      padding: 13px 14px;
-      border-radius: 14px;
-    }
-
-    .summary-item span {
+    .hud-item span {
       display: block;
 
-      margin-bottom: 5px;
+      margin-bottom: 4px;
 
       color: var(--muted);
-      font-size: 0.72rem;
+
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
     }
 
-    .summary-item strong {
-      font-size: 1.03rem;
+    .hud-item strong {
+      display: block;
+      font-size: 1.08rem;
     }
 
-    .mini-track {
-      height: 5px;
-      margin-top: 8px;
+    .hud-item.combo strong {
+      color: var(--yellow);
+    }
 
-      border-radius: 999px;
-      background: #30353a;
+    .hud-item.stage strong {
+      color: var(--mint);
+      font-size: 0.92rem;
+    }
+
+    /* 관제 도우미와 사건 */
+
+    .command-strip {
+      display: grid;
+
+      grid-template-columns:
+        minmax(320px, 0.9fr)
+        minmax(420px, 1.2fr);
+
+      gap: 0;
+      margin-bottom: 10px;
 
       overflow: hidden;
     }
 
-    .mini-fill {
-      height: 100%;
-      width: 0;
-
-      background: var(--mint);
-      border-radius: inherit;
-
-      transition:
-        width 0.2s linear,
-        background 0.2s ease;
-    }
-
-    /* 외부 사건 */
-
-    .event-panel {
+    .hypo-panel {
       display: grid;
-      grid-template-columns: auto 1fr auto;
+      grid-template-columns: 84px 1fr;
+
       align-items: center;
 
-      gap: 16px;
-      min-height: 112px;
+      gap: 14px;
+      min-height: 150px;
       padding: 18px;
-      margin-bottom: 12px;
 
-      border-radius: 18px;
+      border-right: 1px solid var(--line);
     }
 
-    .event-illustration {
-      width: 72px;
-      height: 72px;
+    .hypo-avatar {
+      width: 80px;
+      height: 80px;
 
       display: grid;
       place-items: center;
 
-      border-radius: 18px;
+      position: relative;
+
+      border-radius: 24px;
+
+      background: var(--mint-soft);
+      border:
+        1px solid rgba(46, 230, 189, 0.22);
+
+      color: var(--mint);
+    }
+
+    .hypo-avatar::after {
+      content: "";
+
+      position: absolute;
+      inset: -5px;
+
+      border:
+        1px solid rgba(46, 230, 189, 0.14);
+
+      border-radius: 28px;
+
+      animation:
+        avatarPulse 2.2s ease-in-out infinite;
+    }
+
+    .hypo-avatar.warning {
+      color: var(--yellow);
+
+      background:
+        rgba(255, 209, 102, 0.09);
+
+      border-color:
+        rgba(255, 209, 102, 0.28);
+    }
+
+    .hypo-avatar.danger {
+      color: var(--red);
+
+      background:
+        rgba(255, 107, 107, 0.1);
+
+      border-color:
+        rgba(255, 107, 107, 0.34);
+
+      animation:
+        avatarShake 0.32s linear infinite;
+    }
+
+    @keyframes avatarPulse {
+      0%,
+      100% {
+        transform: scale(0.98);
+        opacity: 0.55;
+      }
+
+      50% {
+        transform: scale(1.03);
+        opacity: 1;
+      }
+    }
+
+    @keyframes avatarShake {
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+
+      50% {
+        transform: translateX(2px);
+      }
+    }
+
+    .hypo-avatar svg {
+      width: 56px;
+      height: 56px;
+    }
+
+    .assistant-label {
+      margin: 0 0 7px;
+
+      color: var(--mint);
+
+      font-size: 0.68rem;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+    }
+
+    .assistant-text {
+      margin: 0;
+
+      color: var(--text);
+
+      font-size: 0.9rem;
+      line-height: 1.55;
+    }
+
+    .assistant-tip {
+      margin: 7px 0 0;
+
+      color: var(--muted);
+
+      font-size: 0.7rem;
+      line-height: 1.45;
+    }
+
+    .event-panel {
+      min-height: 150px;
+      padding: 18px;
+
+      display: grid;
+
+      grid-template-columns:
+        62px 1fr auto;
+
+      gap: 14px;
+      align-items: center;
+
+      position: relative;
+      overflow: hidden;
+    }
+
+    .event-panel.boss {
+      background:
+        linear-gradient(
+          90deg,
+          rgba(198, 156, 255, 0.08),
+          transparent 58%
+        ),
+        var(--panel);
+    }
+
+    .event-panel.boss::before {
+      content: "";
+
+      position: absolute;
+      inset: 0;
+
+      pointer-events: none;
+
+      border:
+        1px solid rgba(198, 156, 255, 0.5);
+
+      border-radius: 0 18px 18px 0;
+
+      animation:
+        bossGlow 1s ease-in-out infinite alternate;
+    }
+
+    @keyframes bossGlow {
+      from {
+        box-shadow:
+          inset 0 0 0 rgba(198, 156, 255, 0);
+      }
+
+      to {
+        box-shadow:
+          inset 0 0 28px rgba(198, 156, 255, 0.07);
+      }
+    }
+
+    .event-icon {
+      width: 58px;
+      height: 58px;
+
+      display: grid;
+      place-items: center;
+
+      border-radius: 17px;
 
       background: var(--panel-2);
       border: 1px solid var(--line);
 
-      font-size: 2rem;
+      font-size: 1.9rem;
     }
 
-    .event-copy small {
+    .event-type {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+
+      margin-bottom: 5px;
+
       color: var(--mint);
 
-      font-size: 0.68rem;
-      font-weight: 800;
-      letter-spacing: 0.14em;
+      font-size: 0.65rem;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+    }
+
+    .event-type.boss {
+      color: var(--purple);
     }
 
     .event-copy h2 {
-      margin: 6px 0 5px;
-      font-size: 1.08rem;
+      margin: 0 0 5px;
+      font-size: 1.04rem;
     }
 
     .event-copy p {
@@ -255,23 +499,221 @@
 
       color: var(--muted);
 
-      font-size: 0.84rem;
-      line-height: 1.5;
+      font-size: 0.78rem;
+      line-height: 1.45;
     }
 
-    .event-time {
-      min-width: 76px;
+    .event-timer {
+      min-width: 74px;
       text-align: right;
     }
 
-    .event-time strong {
+    .event-timer strong {
       display: block;
       font-size: 1.35rem;
     }
 
-    .event-time span {
+    .event-timer span {
       color: var(--muted);
-      font-size: 0.7rem;
+      font-size: 0.64rem;
+    }
+
+    .event-progress {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+
+      height: 4px;
+
+      background: var(--panel-3);
+    }
+
+    .event-progress > div {
+      height: 100%;
+      width: 0;
+
+      background: var(--mint);
+
+      transition:
+        width 0.12s linear,
+        background 0.2s ease;
+    }
+
+    /* 미니 미션 */
+
+    .mission-panel {
+      display: grid;
+
+      grid-template-columns:
+        44px 1fr
+        minmax(190px, 0.55fr)
+        auto;
+
+      align-items: center;
+
+      gap: 12px;
+      min-height: 76px;
+      margin-bottom: 10px;
+      padding: 12px 14px;
+    }
+
+    .mission-icon {
+      width: 42px;
+      height: 42px;
+
+      display: grid;
+      place-items: center;
+
+      border-radius: 13px;
+
+      color: var(--yellow);
+
+      background:
+        rgba(255, 209, 102, 0.1);
+
+      border:
+        1px solid rgba(255, 209, 102, 0.2);
+
+      font-size: 1.2rem;
+    }
+
+    .mission-copy small {
+      display: block;
+
+      color: var(--yellow);
+
+      font-size: 0.62rem;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+    }
+
+    .mission-copy strong {
+      display: block;
+
+      margin: 3px 0 2px;
+
+      font-size: 0.84rem;
+    }
+
+    .mission-copy p {
+      margin: 0;
+
+      color: var(--muted);
+      font-size: 0.68rem;
+    }
+
+    .mission-meter {
+      min-width: 0;
+    }
+
+    .meter-row {
+      display: flex;
+      justify-content: space-between;
+
+      gap: 8px;
+      margin-bottom: 6px;
+
+      color: var(--muted);
+      font-size: 0.66rem;
+    }
+
+    .track {
+      height: 7px;
+
+      border-radius: 999px;
+
+      background: var(--panel-3);
+      overflow: hidden;
+    }
+
+    .fill {
+      height: 100%;
+      width: 0;
+
+      border-radius: inherit;
+      background: var(--mint);
+
+      transition:
+        width 0.15s linear,
+        background 0.2s ease;
+    }
+
+    .boost-button {
+      min-width: 142px;
+      min-height: 48px;
+      padding: 8px 12px;
+
+      position: relative;
+      overflow: hidden;
+
+      border-radius: 13px;
+
+      color: var(--text);
+      background: var(--panel-2);
+
+      border: 1px solid var(--line);
+    }
+
+    .boost-button.ready {
+      color: #07130f;
+      background: var(--mint);
+      border-color: var(--mint);
+
+      animation:
+        readyPulse 0.9s ease-in-out infinite alternate;
+    }
+
+    @keyframes readyPulse {
+      from {
+        box-shadow:
+          0 0 0 rgba(46, 230, 189, 0);
+      }
+
+      to {
+        box-shadow:
+          0 0 24px rgba(46, 230, 189, 0.22);
+      }
+    }
+
+    .boost-button strong,
+    .boost-button span {
+      display: block;
+
+      position: relative;
+      z-index: 1;
+    }
+
+    .boost-button strong {
+      font-size: 0.75rem;
+    }
+
+    .boost-button span {
+      margin-top: 3px;
+
+      color: var(--muted);
+      font-size: 0.62rem;
+    }
+
+    .boost-button.ready span {
+      color: rgba(7, 19, 15, 0.7);
+    }
+
+    .boost-charge {
+      position: absolute;
+      inset: auto 0 0 0;
+
+      height: 4px;
+      width: 0;
+
+      background: var(--mint);
+
+      transition:
+        width 0.18s linear;
+    }
+
+    .boost-button.ready .boost-charge {
+      background: #07130f;
     }
 
     /* 생체 수치 카드 */
@@ -279,45 +721,49 @@
     .dashboard {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
+
+      gap: 10px;
     }
 
     .stat-card {
-      position: relative;
-      overflow: hidden;
+      padding: 17px;
 
-      padding: 18px;
+      position: relative;
+
       border-radius: 18px;
 
+      background: var(--panel);
+      border: 1px solid var(--line);
+
+      box-shadow: var(--shadow);
+
       transition:
-        border-color 0.2s ease,
-        transform 0.2s ease;
+        border-color 0.18s ease,
+        transform 0.18s ease;
     }
 
     .stat-card.warning {
-      border-color: rgba(255, 209, 102, 0.7);
+      border-color:
+        rgba(255, 209, 102, 0.58);
     }
 
     .stat-card.danger {
-      border-color: rgba(255, 107, 107, 0.8);
+      border-color:
+        rgba(255, 107, 107, 0.78);
+
+      animation:
+        dangerCard 0.6s ease-in-out infinite alternate;
     }
 
-    .stat-card.shake {
-      animation: shake 0.35s linear infinite;
-    }
-
-    @keyframes shake {
-      0%,
-      100% {
-        transform: translateX(0);
+    @keyframes dangerCard {
+      from {
+        box-shadow: var(--shadow);
       }
 
-      25% {
-        transform: translateX(-2px);
-      }
-
-      75% {
-        transform: translateX(2px);
+      to {
+        box-shadow:
+          var(--shadow),
+          inset 0 0 28px rgba(255, 107, 107, 0.07);
       }
     }
 
@@ -327,100 +773,109 @@
       justify-content: space-between;
 
       gap: 10px;
-      margin-bottom: 14px;
+      margin-bottom: 13px;
     }
 
     .card-name {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 9px;
     }
 
-    .icon-wrap {
-      width: 44px;
-      height: 44px;
+    .stat-icon {
+      width: 42px;
+      height: 42px;
 
       display: grid;
       place-items: center;
 
-      border-radius: 14px;
+      border-radius: 13px;
 
-      background: var(--mint-dark);
       color: var(--mint);
+      background: var(--mint-soft);
     }
 
-    .icon-wrap svg {
-      width: 27px;
-      height: 27px;
+    .stat-icon svg {
+      width: 25px;
+      height: 25px;
     }
 
     .card-name h3 {
       margin: 0;
-      font-size: 0.98rem;
+      font-size: 0.92rem;
     }
 
     .card-name p {
       margin: 3px 0 0;
 
       color: var(--muted);
-      font-size: 0.7rem;
+      font-size: 0.65rem;
     }
 
     .state-badge {
-      padding: 6px 9px;
+      padding: 5px 8px;
 
       border-radius: 999px;
 
       color: var(--mint);
-      background: var(--mint-dark);
+      background: var(--mint-soft);
 
-      font-size: 0.69rem;
-      font-weight: 800;
+      font-size: 0.64rem;
+      font-weight: 900;
     }
 
     .state-badge.warning {
       color: var(--yellow);
-      background: rgba(255, 209, 102, 0.12);
+
+      background:
+        rgba(255, 209, 102, 0.1);
     }
 
     .state-badge.danger {
       color: var(--red);
-      background: rgba(255, 107, 107, 0.12);
+
+      background:
+        rgba(255, 107, 107, 0.1);
     }
 
     .reading {
       display: flex;
       align-items: baseline;
 
-      gap: 6px;
-      margin-bottom: 13px;
+      gap: 5px;
+      margin-bottom: 12px;
     }
 
     .reading strong {
-      font-size: clamp(2rem, 4vw, 2.65rem);
-      letter-spacing: -0.05em;
+      font-size:
+        clamp(2rem, 4vw, 2.55rem);
+
+      letter-spacing: -0.055em;
     }
 
     .reading span {
       color: var(--muted);
-      font-size: 0.77rem;
+      font-size: 0.7rem;
     }
 
-    .trend {
+    .reading .trend {
       margin-left: auto;
-      font-weight: 800;
+
+      color: var(--mint);
+
+      font-size: 0.95rem;
+      font-weight: 900;
     }
 
     .gauge {
       position: relative;
 
       height: 12px;
-      margin-bottom: 8px;
+      margin-bottom: 7px;
 
       border-radius: 999px;
-      background: #34393e;
 
-      overflow: visible;
+      background: #363b40;
     }
 
     .safe-zone {
@@ -428,7 +883,9 @@
       inset-block: 0;
 
       border-radius: inherit;
-      background: rgba(46, 230, 189, 0.34);
+
+      background:
+        rgba(46, 230, 189, 0.34);
     }
 
     .marker {
@@ -437,33 +894,64 @@
       left: 50%;
 
       width: 4px;
-      height: 21px;
+      height: 22px;
 
       border-radius: 999px;
-      background: white;
+      background: #fff;
 
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.65);
+      transform:
+        translate(-50%, -50%);
 
-      transform: translate(-50%, -50%);
+      box-shadow:
+        0 0 9px rgba(255, 255, 255, 0.65);
 
-      transition: left 0.18s linear;
+      transition:
+        left 0.15s linear;
     }
 
     .range-row {
       display: flex;
       justify-content: space-between;
 
-      margin-bottom: 15px;
+      margin-bottom: 12px;
 
       color: var(--muted);
-      font-size: 0.66rem;
+      font-size: 0.6rem;
     }
 
-    /* 조절 버튼 */
+    .effect-line {
+      min-height: 29px;
+      margin-bottom: 10px;
+      padding: 7px 8px;
+
+      border-radius: 9px;
+
+      color: var(--muted);
+
+      background:
+        rgba(255, 255, 255, 0.025);
+
+      border:
+        1px solid rgba(255, 255, 255, 0.05);
+
+      font-size: 0.62rem;
+      line-height: 1.35;
+    }
+
+    .effect-line.active {
+      color: var(--mint);
+
+      background:
+        rgba(46, 230, 189, 0.055);
+
+      border-color:
+        rgba(46, 230, 189, 0.12);
+    }
 
     .controls {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
+
       gap: 7px;
     }
 
@@ -472,120 +960,111 @@
     }
 
     .control-button {
-      min-height: 62px;
-      padding: 10px 8px;
+      min-height: 66px;
+      padding: 9px 7px;
 
-      background: var(--panel-2);
+      position: relative;
+      overflow: hidden;
+
+      border-radius: 11px;
+
       color: var(--text);
+      background: var(--panel-2);
 
       border: 1px solid var(--line);
-
-      text-align: center;
     }
 
-    .control-button strong {
-      display: block;
-      font-size: 0.78rem;
-    }
+    .control-button:hover {
+      border-color:
+        rgba(46, 230, 189, 0.48);
 
-    .control-button span {
-      display: block;
-
-      margin-top: 4px;
-
-      color: var(--mint);
-      font-size: 0.68rem;
+      background: #272c30;
     }
 
     .control-button:active {
-      background: var(--mint-dark);
+      background:
+        rgba(46, 230, 189, 0.12);
+
+      transform: scale(0.985);
     }
 
-    .side-effect {
-      margin: 12px 0 0;
-      padding-top: 11px;
+    .control-button strong,
+    .control-button span {
+      display: block;
+    }
 
-      border-top: 1px solid var(--line);
+    .control-button strong {
+      font-size: 0.72rem;
+    }
+
+    .control-button span {
+      margin-top: 4px;
+
+      color: var(--mint);
+      font-size: 0.61rem;
+    }
+
+    .keycap {
+      position: absolute;
+      top: 5px;
+      right: 6px;
 
       color: var(--muted);
 
-      font-size: 0.7rem;
+      font-size: 0.53rem;
+      font-weight: 900;
+    }
+
+    /* 하단 시스템 상태 */
+
+    .system-panel {
+      display: grid;
+
+      grid-template-columns:
+        minmax(150px, 0.8fr)
+        minmax(150px, 0.8fr)
+        1.8fr;
+
+      gap: 14px;
+      align-items: center;
+
+      margin-top: 10px;
+      padding: 13px 15px;
+    }
+
+    .system-meter .meter-row {
+      margin-bottom: 5px;
+    }
+
+    .system-meter.feedback .fill {
+      background: var(--yellow);
+    }
+
+    .system-message {
+      margin: 0;
+      padding-left: 14px;
+
+      border-left: 1px solid var(--line);
+
+      color: var(--muted);
+
+      font-size: 0.73rem;
       line-height: 1.45;
     }
 
-    /* 하단 메시지 */
-
-    .message-panel {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      align-items: center;
-
-      gap: 12px;
-      margin-top: 12px;
-      padding: 14px 16px;
-
-      border-radius: 14px;
-    }
-
-    #message {
-      margin: 0;
-
-      color: var(--muted);
-
-      font-size: 0.82rem;
-      line-height: 1.5;
-    }
-
-    #message.good {
+    .system-message.good {
       color: var(--mint);
     }
 
-    #message.warn {
+    .system-message.warn {
       color: var(--yellow);
     }
 
-    #message.bad {
+    .system-message.bad {
       color: var(--red);
     }
 
-    .recovery-button {
-      white-space: nowrap;
-
-      padding: 11px 14px;
-
-      background: var(--mint);
-      color: #071713;
-
-      font-weight: 900;
-    }
-
-    /* 셧다운 알림 */
-
-    .lock-banner {
-      position: fixed;
-      left: 50%;
-      bottom: 24px;
-      z-index: 40;
-
-      padding: 12px 18px;
-
-      border-radius: 999px;
-
-      background: var(--red);
-      color: #1c0909;
-
-      font-weight: 900;
-
-      box-shadow: var(--shadow);
-
-      transform: translateX(-50%);
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    /* 시작 설명 화면 */
+    /* 설명 및 결과 화면 */
 
     .overlay {
       position: fixed;
@@ -597,47 +1076,53 @@
 
       padding: 18px;
 
-      background: rgba(8, 10, 11, 0.88);
+      background:
+        rgba(7, 9, 10, 0.88);
+
       backdrop-filter: blur(10px);
     }
 
-    .intro-card,
-    .result-card {
-      width: min(820px, 100%);
+    .modal-card {
+      width: min(850px, 100%);
       max-height: calc(100vh - 36px);
 
       overflow: auto;
 
-      padding: clamp(22px, 4vw, 38px);
+      padding:
+        clamp(22px, 4vw, 38px);
 
       border-radius: 24px;
 
       background: var(--panel);
       border: 1px solid var(--line);
 
-      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
+      box-shadow:
+        0 30px 90px rgba(0, 0, 0, 0.5);
     }
 
     .intro-grid {
       display: grid;
-      grid-template-columns: 0.9fr 1.1fr;
+
+      grid-template-columns:
+        0.88fr 1.12fr;
+
       align-items: center;
 
-      gap: 26px;
+      gap: 28px;
     }
 
-    .body-graphic {
-      min-height: 310px;
+    .body-illustration {
+      min-height: 360px;
 
       display: grid;
       place-items: center;
 
-      border-radius: 20px;
+      border-radius: 21px;
 
       background:
         radial-gradient(
           circle at center,
-          rgba(46, 230, 189, 0.12),
+          rgba(46, 230, 189, 0.13),
           transparent 62%
         ),
         var(--panel-2);
@@ -645,46 +1130,57 @@
       border: 1px solid var(--line);
     }
 
-    .body-graphic svg {
-      width: min(320px, 95%);
+    .body-illustration svg {
+      width: min(330px, 92%);
       height: auto;
     }
 
-    .intro-copy .kicker {
+    .kicker {
+      display: block;
+
       color: var(--mint);
 
-      font-size: 0.72rem;
-      font-weight: 900;
-      letter-spacing: 0.15em;
+      font-size: 0.68rem;
+      font-weight: 950;
+      letter-spacing: 0.14em;
     }
 
-    .intro-copy h2 {
+    .intro-copy h2,
+    .help-copy h2,
+    .result-card h2 {
       margin: 8px 0 10px;
 
-      font-size: clamp(1.8rem, 5vw, 2.7rem);
+      font-size:
+        clamp(1.8rem, 5vw, 2.55rem);
+
+      line-height: 1.15;
     }
 
-    .intro-copy > p {
-      margin-bottom: 18px;
+    .intro-copy > p,
+    .help-copy > p,
+    .result-card > p {
+      margin: 0 0 18px;
 
       color: var(--muted);
 
+      font-size: 0.85rem;
       line-height: 1.65;
     }
 
-    .rules {
+    .feature-list {
       display: grid;
-      gap: 9px;
+      gap: 8px;
 
-      margin-bottom: 20px;
+      margin-bottom: 18px;
     }
 
-    .rule {
+    .feature {
       display: grid;
-      grid-template-columns: 32px 1fr;
+      grid-template-columns: 34px 1fr;
+
+      gap: 9px;
       align-items: start;
 
-      gap: 10px;
       padding: 10px;
 
       border-radius: 12px;
@@ -693,75 +1189,123 @@
       border: 1px solid var(--line);
     }
 
-    .rule b {
-      width: 28px;
-      height: 28px;
+    .feature-icon {
+      width: 31px;
+      height: 31px;
 
       display: grid;
       place-items: center;
 
       border-radius: 9px;
 
-      background: var(--mint-dark);
       color: var(--mint);
+      background: var(--mint-soft);
+
+      font-size: 0.9rem;
     }
 
-    .rule strong {
+    .feature strong {
       display: block;
 
       margin-bottom: 3px;
-
-      font-size: 0.82rem;
+      font-size: 0.78rem;
     }
 
-    .rule span {
+    .feature span {
       display: block;
 
       color: var(--muted);
 
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       line-height: 1.45;
     }
 
     .main-button {
       width: 100%;
-      padding: 13px 18px;
+      min-height: 48px;
+      padding: 12px 18px;
 
+      border-radius: 12px;
+
+      color: #061410;
       background: var(--mint);
-      color: #061612;
 
-      font-weight: 900;
+      font-weight: 950;
     }
 
-    /* 결과 화면 */
+    .help-copy {
+      width: min(620px, 100%);
+      margin: 0 auto;
+    }
+
+    .help-table {
+      display: grid;
+      gap: 7px;
+
+      margin: 18px 0;
+    }
+
+    .help-row {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+
+      gap: 12px;
+      padding: 10px 12px;
+
+      border-radius: 11px;
+
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+
+      font-size: 0.73rem;
+    }
+
+    .help-row strong {
+      color: var(--mint);
+    }
+
+    .help-row span {
+      color: var(--muted);
+      line-height: 1.45;
+    }
 
     .result-card {
-      width: min(520px, 100%);
+      width: min(580px, 100%);
       text-align: center;
     }
 
-    .result-card h2 {
-      margin: 0 0 8px;
-      font-size: 2rem;
-    }
+    .grade {
+      width: 86px;
+      height: 86px;
 
-    .result-card > p {
-      color: var(--muted);
-      line-height: 1.6;
+      display: grid;
+      place-items: center;
+
+      margin: 0 auto 13px;
+
+      border-radius: 25px;
+
+      color: #061410;
+      background: var(--mint);
+
+      font-size: 2.5rem;
+      font-weight: 950;
+
+      transform: rotate(-3deg);
     }
 
     .result-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(4, 1fr);
 
-      gap: 9px;
+      gap: 8px;
       margin: 18px 0;
     }
 
     .result-item {
-      padding: 13px;
+      padding: 11px 8px;
 
-      border-radius: 13px;
+      border-radius: 12px;
 
       background: var(--panel-2);
       border: 1px solid var(--line);
@@ -771,49 +1315,305 @@
       display: block;
 
       color: var(--muted);
-      font-size: 0.7rem;
+      font-size: 0.6rem;
     }
 
     .result-item strong {
       display: block;
 
       margin-top: 4px;
+      font-size: 1rem;
+    }
 
-      font-size: 1.2rem;
+    .badges {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+
+      gap: 7px;
+      margin-bottom: 14px;
+    }
+
+    .badge {
+      padding: 7px 9px;
+
+      border-radius: 999px;
+
+      color: var(--yellow);
+
+      background:
+        rgba(255, 209, 102, 0.08);
+
+      border:
+        1px solid rgba(255, 209, 102, 0.18);
+
+      font-size: 0.65rem;
+      font-weight: 800;
+    }
+
+    .lesson-box {
+      margin-bottom: 16px;
+      padding: 13px;
+
+      border-radius: 13px;
+
+      color: var(--muted);
+
+      background:
+        rgba(46, 230, 189, 0.05);
+
+      border:
+        1px solid rgba(46, 230, 189, 0.12);
+
+      font-size: 0.72rem;
+      line-height: 1.55;
+      text-align: left;
+    }
+
+    /* 알림과 연출 */
+
+    .toast-stack {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 140;
+
+      width:
+        min(320px, calc(100vw - 32px));
+
+      display: grid;
+      gap: 7px;
+
+      pointer-events: none;
+    }
+
+    .toast {
+      padding: 10px 12px;
+
+      border-radius: 11px;
+
+      color: var(--text);
+
+      background:
+        rgba(25, 28, 31, 0.97);
+
+      border: 1px solid var(--line);
+
+      box-shadow: var(--shadow);
+
+      font-size: 0.72rem;
+
+      animation:
+        toastIn 0.2s ease,
+        toastOut 0.25s ease 2.05s forwards;
+    }
+
+    .toast.good {
+      border-color:
+        rgba(46, 230, 189, 0.46);
+    }
+
+    .toast.warn {
+      border-color:
+        rgba(255, 209, 102, 0.48);
+    }
+
+    .toast.bad {
+      border-color:
+        rgba(255, 107, 107, 0.55);
+    }
+
+    .toast.boss {
+      border-color:
+        rgba(198, 156, 255, 0.6);
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+    }
+
+    @keyframes toastOut {
+      to {
+        opacity: 0;
+        transform: translateY(-5px);
+      }
+    }
+
+    .score-pop {
+      position: fixed;
+      z-index: 130;
+
+      pointer-events: none;
+
+      color: var(--mint);
+
+      font-size: 0.86rem;
+      font-weight: 950;
+
+      text-shadow:
+        0 2px 10px rgba(0, 0, 0, 0.5);
+
+      animation:
+        scoreFly 0.9s ease-out forwards;
+    }
+
+    .score-pop.perfect {
+      color: var(--yellow);
+      font-size: 1rem;
+    }
+
+    .score-pop.bad {
+      color: var(--red);
+    }
+
+    @keyframes scoreFly {
+      0% {
+        opacity: 0;
+
+        transform:
+          translate(-50%, 0)
+          scale(0.8);
+      }
+
+      15% {
+        opacity: 1;
+
+        transform:
+          translate(-50%, -5px)
+          scale(1.08);
+      }
+
+      100% {
+        opacity: 0;
+
+        transform:
+          translate(-50%, -46px)
+          scale(0.95);
+      }
+    }
+
+    .screen-flash {
+      position: fixed;
+      inset: 0;
+      z-index: 120;
+
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    .screen-flash.good {
+      animation: flashGood 0.55s ease;
+    }
+
+    .screen-flash.boss {
+      animation: flashBoss 0.65s ease;
+    }
+
+    .screen-flash.bad {
+      animation: flashBad 0.55s ease;
+    }
+
+    @keyframes flashGood {
+      0% {
+        opacity: 0.24;
+
+        background:
+          rgba(46, 230, 189, 0.3);
+      }
+
+      100% {
+        opacity: 0;
+      }
+    }
+
+    @keyframes flashBoss {
+      0% {
+        opacity: 0.28;
+
+        background:
+          rgba(198, 156, 255, 0.32);
+      }
+
+      100% {
+        opacity: 0;
+      }
+    }
+
+    @keyframes flashBad {
+      0% {
+        opacity: 0.26;
+
+        background:
+          rgba(255, 107, 107, 0.28);
+      }
+
+      100% {
+        opacity: 0;
+      }
+    }
+
+    .lock-banner {
+      position: fixed;
+      left: 50%;
+      bottom: 22px;
+      z-index: 135;
+
+      transform: translateX(-50%);
+
+      padding: 11px 16px;
+
+      border-radius: 999px;
+
+      color: #180707;
+      background: var(--red);
+
+      font-size: 0.75rem;
+      font-weight: 950;
+
+      box-shadow: var(--shadow);
     }
 
     /* 반응형 */
 
-    @media (max-width: 850px) {
-      .summary {
-        grid-template-columns: repeat(2, 1fr);
+    @media (max-width: 900px) {
+      .command-strip {
+        grid-template-columns: 1fr;
+      }
+
+      .hypo-panel {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .event-panel.boss::before {
+        border-radius: 0 0 18px 18px;
+      }
+
+      .mission-panel {
+        grid-template-columns: 44px 1fr auto;
+      }
+
+      .mission-meter {
+        grid-column: 2 / -1;
+        width: 100%;
       }
 
       .dashboard {
         grid-template-columns: 1fr;
       }
 
-      .intro-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .body-graphic {
-        min-height: 235px;
-      }
-
-      .body-graphic svg {
-        width: min(280px, 90%);
+      .result-grid {
+        grid-template-columns: repeat(2, 1fr);
       }
     }
 
-    @media (max-width: 560px) {
+    @media (max-width: 650px) {
       .app {
-        width: min(100% - 16px, 1080px);
-        padding-top: 14px;
-      }
-
-      .topbar {
-        align-items: flex-start;
+        width: min(100% - 14px, 1120px);
+        padding-top: 12px;
       }
 
       .brand p {
@@ -821,43 +1621,111 @@
       }
 
       .top-actions {
-        flex-direction: column;
+        gap: 5px;
       }
 
-      .summary {
-        grid-template-columns: 1fr 1fr;
+      .icon-button {
+        padding-inline: 9px;
+        font-size: 0.72rem;
+      }
+
+      .hud {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .hypo-panel {
+        grid-template-columns: 66px 1fr;
+        padding: 14px;
+      }
+
+      .hypo-avatar {
+        width: 62px;
+        height: 62px;
+
+        border-radius: 19px;
+      }
+
+      .hypo-avatar svg {
+        width: 46px;
+        height: 46px;
       }
 
       .event-panel {
-        grid-template-columns: auto 1fr;
+        grid-template-columns: 52px 1fr;
+        padding: 14px;
       }
 
-      .event-time {
+      .event-icon {
+        width: 50px;
+        height: 50px;
+      }
+
+      .event-timer {
         grid-column: 1 / -1;
+
+        min-width: 0;
 
         display: flex;
         align-items: baseline;
 
-        gap: 8px;
-
+        gap: 7px;
         text-align: left;
       }
 
-      .event-illustration {
-        width: 58px;
-        height: 58px;
+      .event-timer strong {
+        font-size: 1rem;
       }
 
-      .controls.three {
-        grid-template-columns: 1fr 1fr 1fr;
+      .mission-panel {
+        grid-template-columns: 40px 1fr;
       }
 
-      .message-panel {
+      .mission-meter,
+      .boost-button {
+        grid-column: 1 / -1;
+      }
+
+      .boost-button {
+        width: 100%;
+      }
+
+      .system-panel {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .system-message {
+        grid-column: 1 / -1;
+
+        padding: 10px 0 0;
+
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .intro-grid {
         grid-template-columns: 1fr;
       }
 
-      .recovery-button {
-        width: 100%;
+      .body-illustration {
+        min-height: 245px;
+      }
+
+      .body-illustration svg {
+        width: min(280px, 90%);
+      }
+
+      .help-row {
+        grid-template-columns: 88px 1fr;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .controls.three {
+        grid-template-columns: 1fr;
+      }
+
+      .controls.three .control-button {
+        min-height: 58px;
       }
     }
 
@@ -866,6 +1734,7 @@
       *::before,
       *::after {
         animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
       }
     }
@@ -873,28 +1742,38 @@
 </head>
 
 <body>
-  <main class="app">
+  <main class="app" id="app">
     <header class="topbar">
       <div class="brand">
         <div class="brand-mark">SP</div>
 
         <div>
           <h1>Setpoint</h1>
-          <p>혈당·체온·수분을 지키는 항상성 관제 게임</p>
+          <p>Homeostasis Command · 생체 관제 게임</p>
         </div>
       </div>
 
       <div class="top-actions">
         <button
-          class="ghost-button"
-          id="guideButton"
+          class="icon-button"
+          id="soundButton"
+          type="button"
         >
-          설명 보기
+          🔊 소리
         </button>
 
         <button
-          class="ghost-button"
+          class="icon-button"
+          id="helpButton"
+          type="button"
+        >
+          설명
+        </button>
+
+        <button
+          class="icon-button"
           id="pauseButton"
+          type="button"
           disabled
         >
           일시정지
@@ -902,73 +1781,198 @@
       </div>
     </header>
 
-    <section class="summary">
-      <div class="summary-item">
+    <section class="hud" aria-label="게임 정보">
+      <div class="hud-item">
         <span>남은 시간</span>
-        <strong id="timeValue">02:00</strong>
+        <strong id="timeValue">01:30</strong>
       </div>
 
-      <div class="summary-item">
-        <span>시스템 안정도</span>
-        <strong id="stabilityValue">100%</strong>
-
-        <div class="mini-track">
-          <div
-            class="mini-fill"
-            id="stabilityBar"
-          ></div>
-        </div>
-      </div>
-
-      <div class="summary-item">
-        <span>음성 피드백 부하</span>
-        <strong id="feedbackValue">0%</strong>
-
-        <div class="mini-track">
-          <div
-            class="mini-fill"
-            id="feedbackBar"
-          ></div>
-        </div>
-      </div>
-
-      <div class="summary-item">
-        <span>안정 구간 점수</span>
+      <div class="hud-item">
+        <span>점수</span>
         <strong id="scoreValue">0</strong>
+      </div>
+
+      <div class="hud-item combo">
+        <span>정밀 조절 콤보</span>
+        <strong id="comboValue">×1.0</strong>
+      </div>
+
+      <div class="hud-item stage">
+        <span>현재 단계</span>
+        <strong id="stageValue">CALIBRATION</strong>
       </div>
     </section>
 
-    <section class="event-panel">
-      <div
-        class="event-illustration"
-        id="eventIcon"
-      >
-        ◎
+    <section class="panel command-strip">
+      <div class="hypo-panel">
+        <div
+          class="hypo-avatar"
+          id="hypoAvatar"
+          aria-hidden="true"
+        >
+          <svg
+            viewBox="0 0 80 80"
+            fill="none"
+          >
+            <path
+              d="M24 18c-9 1-14 8-13 17-6 5-5 15 2 19 0 9 8 14 16 12 6 7 17 5 20-2 9 1 15-6 14-14 7-4 7-15 0-19 1-9-8-16-17-13-5-7-16-7-22 0Z"
+              stroke="currentColor"
+              stroke-width="3.5"
+              stroke-linejoin="round"
+            />
+
+            <path
+              d="M27 26c-4 3-5 8-2 12M49 25c5 3 6 9 3 13M21 47c4-3 8-3 12 0M47 47c4-3 8-3 12 0M40 18v48"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              opacity=".75"
+            />
+
+            <circle
+              cx="31"
+              cy="40"
+              r="2.5"
+              fill="currentColor"
+            />
+
+            <circle
+              cx="49"
+              cy="40"
+              r="2.5"
+              fill="currentColor"
+            />
+
+            <path
+              id="hypoMouth"
+              d="M33 53c4 4 10 4 14 0"
+              stroke="currentColor"
+              stroke-width="2.8"
+              stroke-linecap="round"
+            />
+          </svg>
+        </div>
+
+        <div>
+          <p class="assistant-label">
+            HYPO // 시상하부 AI
+          </p>
+
+          <p
+            class="assistant-text"
+            id="hypoText"
+          >
+            설명을 읽고 관제를 시작해 줘.
+          </p>
+
+          <p
+            class="assistant-tip"
+            id="hypoTip"
+          >
+            정상일 때는 버튼을 누르지 않는 것도 중요한 선택입니다.
+          </p>
+        </div>
       </div>
 
-      <div class="event-copy">
-        <small>ENVIRONMENT EVENT</small>
+      <div
+        class="event-panel"
+        id="eventPanel"
+      >
+        <div
+          class="event-icon"
+          id="eventIcon"
+        >
+          ◎
+        </div>
 
-        <h2 id="eventTitle">
-          관제 시작 전
-        </h2>
+        <div class="event-copy">
+          <span
+            class="event-type"
+            id="eventType"
+          >
+            ENVIRONMENT SCAN
+          </span>
 
-        <p id="eventDescription">
-          설명을 읽은 뒤 임무를 시작하세요.
+          <h2 id="eventTitle">
+            관제 시작 전
+          </h2>
+
+          <p id="eventDescription">
+            임무가 시작되면 식사, 운동, 추위, 탈수 등의 사건이 발생합니다.
+          </p>
+        </div>
+
+        <div class="event-timer">
+          <strong id="eventTime">--</strong>
+          <span id="eventTimeLabel">다음 사건</span>
+        </div>
+
+        <div
+          class="event-progress"
+          aria-hidden="true"
+        >
+          <div id="eventProgress"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel mission-panel">
+      <div
+        class="mission-icon"
+        id="missionIcon"
+      >
+        ★
+      </div>
+
+      <div class="mission-copy">
+        <small>MINI MISSION</small>
+
+        <strong id="missionTitle">
+          관제 시작 대기
+        </strong>
+
+        <p id="missionDescription">
+          짧은 미션을 완료하면 긴급 조절 에너지가 충전됩니다.
         </p>
       </div>
 
-      <div class="event-time">
-        <strong id="eventTime">--</strong>
+      <div class="mission-meter">
+        <div class="meter-row">
+          <span>진행도</span>
+          <strong id="missionValue">0%</strong>
+        </div>
 
-        <span id="eventTimeLabel">
-          다음 사건
-        </span>
+        <div class="track">
+          <div
+            class="fill"
+            id="missionFill"
+          ></div>
+        </div>
       </div>
+
+      <button
+        class="boost-button"
+        id="boostButton"
+        type="button"
+        disabled
+      >
+        <strong id="boostTitle">
+          긴급 통합 조절
+        </strong>
+
+        <span id="boostText">
+          충전 0% · 단축키 B
+        </span>
+
+        <div
+          class="boost-charge"
+          id="boostCharge"
+        ></div>
+      </button>
     </section>
 
     <section class="dashboard">
-      <!-- 혈당 카드 -->
+      <!-- 혈당 -->
 
       <article
         class="stat-card"
@@ -977,7 +1981,7 @@
         <div class="card-head">
           <div class="card-name">
             <div
-              class="icon-wrap"
+              class="stat-icon"
               aria-hidden="true"
             >
               <svg
@@ -1015,10 +2019,7 @@
         </div>
 
         <div class="reading">
-          <strong id="glucoseValue">
-            100
-          </strong>
-
+          <strong id="glucoseValue">100</strong>
           <span>mg/dL</span>
 
           <span
@@ -1047,11 +2048,20 @@
           <span>200</span>
         </div>
 
+        <div
+          class="effect-line"
+          id="glucoseEffect"
+        >
+          현재 작용: 없음
+        </div>
+
         <div class="controls">
           <button
             class="control-button"
             data-action="insulin"
+            type="button"
           >
+            <span class="keycap">1</span>
             <strong>인슐린</strong>
             <span>혈당 ↓</span>
           </button>
@@ -1059,19 +2069,16 @@
           <button
             class="control-button"
             data-action="glucagon"
+            type="button"
           >
+            <span class="keycap">2</span>
             <strong>글루카곤</strong>
             <span>혈당 ↑</span>
           </button>
         </div>
-
-        <p class="side-effect">
-          과다 조절하면 기준점을 지나친 뒤 반대 방향의
-          혈당 반동이 생깁니다.
-        </p>
       </article>
 
-      <!-- 체온 카드 -->
+      <!-- 체온 -->
 
       <article
         class="stat-card"
@@ -1080,7 +2087,7 @@
         <div class="card-head">
           <div class="card-name">
             <div
-              class="icon-wrap"
+              class="stat-icon"
               aria-hidden="true"
             >
               <svg
@@ -1124,10 +2131,7 @@
         </div>
 
         <div class="reading">
-          <strong id="tempValue">
-            36.7
-          </strong>
-
+          <strong id="tempValue">36.7</strong>
           <span>°C</span>
 
           <span
@@ -1156,11 +2160,20 @@
           <span>40</span>
         </div>
 
+        <div
+          class="effect-line"
+          id="tempEffect"
+        >
+          현재 작용: 없음
+        </div>
+
         <div class="controls three">
           <button
             class="control-button"
             data-action="sympathetic"
+            type="button"
           >
+            <span class="keycap">3</span>
             <strong>교감신경</strong>
             <span>체온·혈당 ↑</span>
           </button>
@@ -1168,7 +2181,9 @@
           <button
             class="control-button"
             data-action="thyroxine"
+            type="button"
           >
+            <span class="keycap">4</span>
             <strong>티록신</strong>
             <span>체온 ↑</span>
           </button>
@@ -1176,19 +2191,16 @@
           <button
             class="control-button"
             data-action="sweat"
+            type="button"
           >
+            <span class="keycap">5</span>
             <strong>발한</strong>
-            <span>체온 ↓</span>
+            <span>체온 ↓ · 수분↓</span>
           </button>
         </div>
-
-        <p class="side-effect">
-          열 생산은 혈당과 수분을 소모하고, 발한은 체온을
-          낮추지만 삼투압을 높입니다.
-        </p>
       </article>
 
-      <!-- 삼투압 카드 -->
+      <!-- 삼투압 -->
 
       <article
         class="stat-card"
@@ -1197,7 +2209,7 @@
         <div class="card-head">
           <div class="card-name">
             <div
-              class="icon-wrap"
+              class="stat-icon"
               aria-hidden="true"
             >
               <svg
@@ -1219,11 +2231,11 @@
                 />
 
                 <circle
-                  cx="43"
+                  cx="44"
                   cy="21"
                   r="4"
                   fill="currentColor"
-                  opacity=".65"
+                  opacity=".7"
                 />
               </svg>
             </div>
@@ -1243,10 +2255,7 @@
         </div>
 
         <div class="reading">
-          <strong id="osmValue">
-            290
-          </strong>
-
+          <strong id="osmValue">290</strong>
           <span>mOsm/kg</span>
 
           <span
@@ -1275,11 +2284,20 @@
           <span>330</span>
         </div>
 
+        <div
+          class="effect-line"
+          id="osmEffect"
+        >
+          현재 작용: 없음
+        </div>
+
         <div class="controls">
           <button
             class="control-button"
             data-action="adh"
+            type="button"
           >
+            <span class="keycap">6</span>
             <strong>ADH</strong>
             <span>삼투압 ↓</span>
           </button>
@@ -1287,91 +2305,122 @@
           <button
             class="control-button"
             data-action="water"
+            type="button"
           >
+            <span class="keycap">7</span>
             <strong>수분 보급</strong>
             <span>삼투압 ↓↓</span>
           </button>
         </div>
-
-        <p class="side-effect">
-          ADH와 수분을 과도하게 사용하면 저삼투압이 되고,
-          이후 탈수 방향의 반동이 생깁니다.
-        </p>
       </article>
     </section>
 
-    <section class="message-panel">
-      <p id="message">
+    <section class="panel system-panel">
+      <div class="system-meter">
+        <div class="meter-row">
+          <span>시스템 안정도</span>
+          <strong id="stabilityValue">100%</strong>
+        </div>
+
+        <div class="track">
+          <div
+            class="fill"
+            id="stabilityFill"
+          ></div>
+        </div>
+      </div>
+
+      <div class="system-meter feedback">
+        <div class="meter-row">
+          <span>음성 피드백 부하</span>
+          <strong id="feedbackValue">0%</strong>
+        </div>
+
+        <div class="track">
+          <div
+            class="fill"
+            id="feedbackFill"
+          ></div>
+        </div>
+      </div>
+
+      <p
+        class="system-message"
+        id="systemMessage"
+      >
         설명을 읽은 뒤 관제 임무를 시작하세요.
       </p>
-
-      <button
-        class="ghost-button recovery-button"
-        id="recoveryButton"
-        disabled
-      >
-        부교감 회복
-      </button>
     </section>
   </main>
+
+  <div
+    class="toast-stack"
+    id="toastStack"
+    aria-live="polite"
+  ></div>
+
+  <div
+    class="screen-flash"
+    id="screenFlash"
+  ></div>
 
   <div
     class="lock-banner hidden"
     id="lockBanner"
   >
-    피드백 셧다운 · 제어권 복구 중
+    수용체 보호 셧다운 · 제어권 복구 중
   </div>
 
-  <!-- 처음에 나타나는 설명 화면 -->
+  <!-- 시작 설명 -->
 
   <section
     class="overlay"
     id="introOverlay"
   >
-    <div class="intro-card">
+    <div class="modal-card">
       <div class="intro-grid">
         <div
-          class="body-graphic"
+          class="body-illustration"
           aria-hidden="true"
         >
           <svg
-            viewBox="0 0 360 330"
+            viewBox="0 0 360 350"
             fill="none"
           >
             <circle
               cx="180"
-              cy="54"
+              cy="52"
               r="30"
               stroke="#2ee6bd"
               stroke-width="4"
             />
 
             <path
-              d="M180 85v92M132 132l48-28 48 28M180 176l-42 92M180 176l42 92"
-              stroke="#dfe9e7"
+              d="M180 84v96M134 126l46-26 46 26M180 178l-40 96M180 178l40 96"
+              stroke="#e8f1ef"
               stroke-width="5"
               stroke-linecap="round"
               stroke-linejoin="round"
             />
 
             <path
-              d="M143 113c-17 24-25 51-25 82M217 113c17 24 25 51 25 82"
-              stroke="#dfe9e7"
+              d="M143 112c-17 25-25 51-25 83M217 112c17 25 25 51 25 83"
+              stroke="#e8f1ef"
               stroke-width="5"
               stroke-linecap="round"
             />
 
             <circle
               cx="180"
-              cy="122"
-              r="16"
-              fill="#123d35"
+              cy="119"
+              r="18"
+              fill="#173a33"
               stroke="#2ee6bd"
               stroke-width="3"
             />
 
             <path
-              d="M174 122h12M180 116v12"
+              d="M171 119h18M180 110v18"
               stroke="#2ee6bd"
               stroke-width="3"
               stroke-linecap="round"
@@ -1379,15 +2428,15 @@
 
             <circle
               cx="180"
-              cy="165"
-              r="16"
-              fill="#123d35"
+              cy="166"
+              r="18"
+              fill="#173a33"
               stroke="#2ee6bd"
               stroke-width="3"
             />
 
             <path
-              d="M180 154v22M174 170h12"
+              d="M180 155v22M173 172h14"
               stroke="#2ee6bd"
               stroke-width="3"
               stroke-linecap="round"
@@ -1395,51 +2444,81 @@
 
             <circle
               cx="180"
-              cy="211"
-              r="16"
-              fill="#123d35"
+              cy="215"
+              r="18"
+              fill="#173a33"
               stroke="#2ee6bd"
               stroke-width="3"
             />
 
             <path
-              d="M180 201c-5 7-9 11-9 17a9 9 0 0 0 18 0c0-6-4-10-9-17Z"
+              d="M180 203c-6 8-10 13-10 19a10 10 0 0 0 20 0c0-6-4-11-10-19Z"
               stroke="#2ee6bd"
               stroke-width="2.5"
             />
 
             <path
-              d="M197 122h88M75 165h88M197 211h88"
-              stroke="#596461"
+              d="M202 119h92M66 166h92M202 215h92"
+              stroke="#5b6764"
               stroke-width="2"
               stroke-dasharray="5 6"
             />
 
             <text
-              x="292"
-              y="126"
-              fill="#a8b2b0"
+              x="299"
+              y="124"
+              fill="#a7b2af"
               font-size="14"
             >
               혈당
             </text>
 
             <text
-              x="18"
-              y="169"
-              fill="#a8b2b0"
+              x="20"
+              y="171"
+              fill="#a7b2af"
               font-size="14"
             >
               체온
             </text>
 
             <text
-              x="292"
-              y="215"
-              fill="#a8b2b0"
+              x="299"
+              y="220"
+              fill="#a7b2af"
               font-size="14"
             >
               수분
+            </text>
+
+            <path
+              d="M85 304h190"
+              stroke="#343a3f"
+              stroke-width="10"
+              stroke-linecap="round"
+            />
+
+            <path
+              d="M85 304h116"
+              stroke="#2ee6bd"
+              stroke-width="10"
+              stroke-linecap="round"
+            />
+
+            <circle
+              cx="201"
+              cy="304"
+              r="10"
+              fill="#f2f7f6"
+            />
+
+            <text
+              x="113"
+              y="333"
+              fill="#a7b2af"
+              font-size="13"
+            >
+              SETPOINT 유지 구간
             </text>
           </svg>
         </div>
@@ -1450,50 +2529,65 @@
           </span>
 
           <h2>
-            몸의 기준점을 지켜 주세요.
+            이번에는 단순히 버티는 게임이 아닙니다.
           </h2>
 
           <p>
-            식사, 운동, 추위, 탈수 같은 사건이 생체 수치를
-            흔듭니다. 필요한 호르몬을 적절한 양과 타이밍으로
-            사용해 2분 동안 항상성을 유지하세요.
+            사건을 빠르게 읽고 정확한 호르몬을 사용해
+            콤보를 만들고, 미니 미션과 보스 위기를 돌파하세요.
+            많이 누르는 것보다 <b>정확한 한 번</b>이
+            더 높은 점수를 줍니다.
           </p>
 
-          <div class="rules">
-            <div class="rule">
-              <b>1</b>
+          <div class="feature-list">
+            <div class="feature">
+              <div class="feature-icon">⚡</div>
 
               <div>
-                <strong>사건을 먼저 읽기</strong>
+                <strong>퍼펙트 타이밍과 콤보</strong>
 
                 <span>
-                  다음 사건과 수치 변화 방향을 확인합니다.
+                  사건 발생 직후 알맞은 조절을 하면
+                  PERFECT 판정과 점수 배수가 올라갑니다.
                 </span>
               </div>
             </div>
 
-            <div class="rule">
-              <b>2</b>
+            <div class="feature">
+              <div class="feature-icon">★</div>
 
               <div>
-                <strong>한 번 조절하고 관찰하기</strong>
+                <strong>계속 바뀌는 미니 미션</strong>
 
                 <span>
-                  호르몬은 누른 뒤에도 몇 초 동안 계속
-                  작용합니다.
+                  안전 상태 유지, 저자극 운영, 연속 정밀 처치 등을
+                  달성하면 긴급 에너지를 얻습니다.
                 </span>
               </div>
             </div>
 
-            <div class="rule">
-              <b>3</b>
+            <div class="feature">
+              <div class="feature-icon">☄</div>
 
               <div>
-                <strong>피드백 부하를 낮게 유지하기</strong>
+                <strong>두 번의 보스 위기</strong>
 
                 <span>
-                  연속 투여하면 반동과 진동이 커지고,
-                  90%를 넘으면 잠시 셧다운됩니다.
+                  시험 스트레스나 한여름 운동회처럼
+                  여러 생체 수치가 동시에 흔들립니다.
+                </span>
+              </div>
+            </div>
+
+            <div class="feature">
+              <div class="feature-icon">↺</div>
+
+              <div>
+                <strong>진짜 핵심은 음성 피드백</strong>
+
+                <span>
+                  버튼을 연타하면 효과는 약해지고 반동은 커져
+                  수용체 보호 셧다운이 발생합니다.
                 </span>
               </div>
             </div>
@@ -1502,21 +2596,113 @@
           <button
             class="main-button"
             id="startButton"
+            type="button"
           >
-            관제 시작
+            90초 관제 시작
           </button>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- 결과 화면 -->
+  <!-- 도움말 -->
+
+  <section
+    class="overlay hidden"
+    id="helpOverlay"
+  >
+    <div class="modal-card">
+      <div class="help-copy">
+        <span class="kicker">
+          QUICK GUIDE
+        </span>
+
+        <h2>조작법</h2>
+
+        <p>
+          수치 자체뿐 아니라 화살표와 사건 설명을 함께 보세요.
+          사건을 정확히 상쇄하면 콤보가 이어집니다.
+        </p>
+
+        <div class="help-table">
+          <div class="help-row">
+            <strong>혈당</strong>
+
+            <span>
+              높아질 때 인슐린, 낮아질 때 글루카곤.
+              두 호르몬을 연달아 사용하면 진동이 커집니다.
+            </span>
+          </div>
+
+          <div class="help-row">
+            <strong>체온</strong>
+
+            <span>
+              추위에는 교감신경 또는 티록신, 더위에는 발한.
+              발한은 수분 손실을 동반합니다.
+            </span>
+          </div>
+
+          <div class="help-row">
+            <strong>삼투압</strong>
+
+            <span>
+              높아질 때 ADH나 수분 보급.
+              수분 보급은 빠르지만 과하면 저삼투압으로
+              지나칠 수 있습니다.
+            </span>
+          </div>
+
+          <div class="help-row">
+            <strong>긴급 조절</strong>
+
+            <span>
+              퍼펙트와 미션으로 100% 충전됩니다.
+              모든 수치를 기준점 쪽으로 이동시키고
+              피드백 부하를 낮춥니다.
+            </span>
+          </div>
+
+          <div class="help-row">
+            <strong>단축키</strong>
+
+            <span>
+              1–7: 호르몬 조절 /
+              B: 긴급 통합 조절 /
+              Space: 일시정지
+            </span>
+          </div>
+        </div>
+
+        <button
+          class="main-button"
+          id="closeHelpButton"
+          type="button"
+        >
+          게임으로 돌아가기
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 결과 -->
 
   <section
     class="overlay hidden"
     id="resultOverlay"
   >
-    <div class="result-card">
+    <div class="modal-card result-card">
+      <div
+        class="grade"
+        id="resultGrade"
+      >
+        A
+      </div>
+
+      <span class="kicker">
+        MISSION REPORT
+      </span>
+
       <h2 id="resultTitle">
         임무 완료
       </h2>
@@ -1525,31 +2711,42 @@
 
       <div class="result-grid">
         <div class="result-item">
-          <span>점수</span>
+          <span>최종 점수</span>
           <strong id="resultScore">0</strong>
         </div>
 
         <div class="result-item">
-          <span>안정 유지율</span>
+          <span>안전 유지율</span>
           <strong id="resultSafe">0%</strong>
         </div>
 
         <div class="result-item">
-          <span>기준점 진동</span>
-          <strong id="resultOscillation">0회</strong>
+          <span>PERFECT</span>
+          <strong id="resultPerfect">0회</strong>
         </div>
 
         <div class="result-item">
-          <span>피드백 셧다운</span>
+          <span>셧다운</span>
           <strong id="resultShutdown">0회</strong>
         </div>
       </div>
 
+      <div
+        class="badges"
+        id="resultBadges"
+      ></div>
+
+      <div
+        class="lesson-box"
+        id="resultLesson"
+      ></div>
+
       <button
         class="main-button"
         id="restartButton"
+        type="button"
       >
-        다시 시작
+        다시 도전
       </button>
     </div>
   </section>
@@ -1568,292 +2765,537 @@
 
     const pick = (array) =>
       array[
-        Math.floor(Math.random() * array.length)
+        Math.floor(
+          Math.random() * array.length
+        )
       ];
 
-    /* 각 생체 수치의 범위와 기준점 */
+    const GAME_DURATION = 90;
 
-    const limits = {
+    const BOSS_TIMES = [
+      28,
+      62
+    ];
+
+    const LIMITS = {
       glucose: {
         min: 40,
         max: 200,
+
         safeMin: 70,
         safeMax: 130,
-        setpoint: 100
+
+        setpoint: 100,
+
+        fatalMin: 35,
+        fatalMax: 220
       },
 
       temp: {
         min: 34,
         max: 40,
+
         safeMin: 36.0,
         safeMax: 37.5,
-        setpoint: 36.7
+
+        setpoint: 36.7,
+
+        fatalMin: 33.7,
+        fatalMax: 40.6
       },
 
       osm: {
         min: 250,
         max: 330,
+
         safeMin: 280,
         safeMax: 300,
-        setpoint: 290
+
+        setpoint: 290,
+
+        fatalMin: 258,
+        fatalMax: 335
       }
     };
 
-    /* 무작위로 발생하는 외부 사건 */
-
-    const events = [
+    const REGULAR_EVENTS = [
       {
+        id: "meal",
         icon: "🍚",
         title: "고탄수화물 식사",
 
         description:
-          "소화·흡수로 혈당이 빠르게 오릅니다.",
+          "포도당 흡수로 혈당이 빠르게 상승합니다.",
+
+        hint:
+          "혈당 상승이 시작되면 인슐린 타이밍을 노려!",
 
         duration: 9,
 
         rates: {
-          glucose: 2.3
+          glucose: 2.6
         }
       },
 
       {
+        id: "exercise",
         icon: "🏃",
         title: "격렬한 운동",
 
         description:
-          "근육이 혈당을 쓰고 체온과 수분 손실이 증가합니다.",
+          "근육이 혈당을 쓰고 체온과 삼투압이 상승합니다.",
+
+        hint:
+          "혈당·체온·수분이 서로 다른 방향으로 움직여.",
 
         duration: 10,
 
         rates: {
-          glucose: -1.2,
-          temp: 0.08,
-          osm: 0.55
+          glucose: -1.3,
+          temp: 0.075,
+          osm: 0.5
         }
       },
 
       {
+        id: "cold",
         icon: "❄️",
         title: "한랭 노출",
 
         description:
-          "몸이 외부로 열을 빼앗겨 체온이 떨어집니다.",
+          "열 손실이 커지며 심부 체온이 떨어집니다.",
+
+        hint:
+          "교감신경은 빠르고, 티록신은 느리지만 오래가.",
 
         duration: 10,
 
         rates: {
-          temp: -0.10
+          temp: -0.105,
+          glucose: -0.15
         }
       },
 
       {
+        id: "heat",
         icon: "☀️",
         title: "고온 환경",
 
         description:
-          "체온이 오르고 발한으로 수분이 손실됩니다.",
+          "체온이 오르고 수분 손실로 삼투압도 상승합니다.",
+
+        hint:
+          "발한은 체온을 낮추지만 수분까지 잃는다는 걸 기억해.",
 
         duration: 10,
 
         rates: {
-          temp: 0.10,
-          osm: 0.45
+          temp: 0.105,
+          osm: 0.42
         }
       },
 
       {
+        id: "dehydration",
         icon: "🏜️",
         title: "수분 부족",
 
         description:
-          "체수분이 줄어 혈장 삼투압이 상승합니다.",
+          "체수분 감소로 혈장 삼투압이 상승합니다.",
+
+        hint:
+          "ADH는 천천히, 수분 보급은 빠르게 작용해.",
 
         duration: 10,
 
         rates: {
-          osm: 0.75
+          osm: 0.78,
+          temp: 0.012
         }
       },
 
       {
+        id: "fasting",
         icon: "⌛",
         title: "장시간 공복",
 
         description:
-          "외부 포도당 공급이 줄어 혈당이 떨어집니다.",
+          "외부 포도당 공급이 줄어 혈당이 하강합니다.",
+
+        hint:
+          "글루카곤으로 간의 저장 포도당을 동원해.",
 
         duration: 9,
 
         rates: {
-          glucose: -1.5
+          glucose: -1.65,
+          temp: -0.01
         }
       },
 
       {
+        id: "salt",
         icon: "🧂",
         title: "고염분 식사",
 
         description:
           "혈장 용질 농도가 높아져 삼투압이 상승합니다.",
 
+        hint:
+          "수치가 너무 빨리 떨어지지 않도록 한 번씩 관찰해.",
+
         duration: 8,
 
         rates: {
-          osm: 0.9
+          osm: 0.95
+        }
+      },
+
+      {
+        id: "stress",
+        icon: "📚",
+        title: "기습 수행평가",
+
+        description:
+          "급성 스트레스로 혈당과 체온이 함께 상승합니다.",
+
+        hint:
+          "한 수치만 보고 반응하면 다른 수치가 흔들릴 수 있어.",
+
+        duration: 9,
+
+        rates: {
+          glucose: 1.45,
+          temp: 0.035,
+          osm: 0.12
         }
       }
     ];
 
-    /* 플레이어가 사용할 수 있는 조절 명령 */
+    const BOSS_EVENTS = [
+      {
+        id: "boss-exam",
+        boss: true,
 
-    const actions = {
-      insulin: {
-        name: "인슐린",
-        duration: 4.5,
+        icon: "⚡",
+        title: "BOSS · 시험 직전 에너지드링크",
+
+        description:
+          "카페인성 스트레스와 당분으로 혈당·체온·삼투압이 동시에 상승합니다.",
+
+        hint:
+          "먼저 가장 빠르게 치솟는 수치를 잡고, 연타는 피해야 해!",
+
+        duration: 12,
 
         rates: {
-          glucose: -4.3,
-          temp: 0.01
+          glucose: 2.65,
+          temp: 0.055,
+          osm: 0.38
+        }
+      },
+
+      {
+        id: "boss-field",
+        boss: true,
+
+        icon: "🔥",
+        title: "BOSS · 한여름 운동회",
+
+        description:
+          "격렬한 운동과 더위가 겹쳐 혈당은 감소하고 체온·삼투압은 급상승합니다.",
+
+        hint:
+          "체온을 내리면 수분 손실이 커져. 순서를 생각해!",
+
+        duration: 13,
+
+        rates: {
+          glucose: -1.45,
+          temp: 0.12,
+          osm: 0.72
+        }
+      },
+
+      {
+        id: "boss-winter",
+        boss: true,
+
+        icon: "🌨️",
+        title: "BOSS · 공복 겨울 등굣길",
+
+        description:
+          "공복과 한파가 겹치며 혈당과 체온이 함께 떨어집니다.",
+
+        hint:
+          "교감신경은 두 수치를 함께 올리지만 피드백 부하도 커.",
+
+        duration: 12,
+
+        rates: {
+          glucose: -1.65,
+          temp: -0.11,
+          osm: 0.08
+        }
+      }
+    ];
+
+    const ACTIONS = {
+      insulin: {
+        name: "인슐린",
+
+        axis: "glucose",
+        direction: -1,
+
+        duration: 4.1,
+        feedback: 11,
+
+        rates: {
+          glucose: -4.5,
+          temp: 0.008
         },
 
         rebound: {
-          glucose: 0.9
+          glucose: 0.82
         },
 
         appropriate: (state) =>
-          state.glucose > 112
+          state.glucose > 112 ||
+          (
+            state.glucose > 104 &&
+            state.trends.glucose > 0.8
+          )
       },
 
       glucagon: {
         name: "글루카곤",
-        duration: 4.5,
+
+        axis: "glucose",
+        direction: 1,
+
+        duration: 4.1,
+        feedback: 11,
 
         rates: {
-          glucose: 4.3,
-          temp: 0.015
+          glucose: 4.35,
+          temp: 0.012
         },
 
         rebound: {
-          glucose: -0.9
+          glucose: -0.78
         },
 
         appropriate: (state) =>
-          state.glucose < 86
+          state.glucose < 88 ||
+          (
+            state.glucose < 96 &&
+            state.trends.glucose < -0.8
+          )
       },
 
       sympathetic: {
         name: "교감신경",
-        duration: 4.5,
+
+        axis: "temp",
+        direction: 1,
+
+        duration: 4.4,
+        feedback: 14,
 
         rates: {
-          glucose: 1.1,
-          temp: 0.14,
-          osm: 0.25
-        },
-
-        rebound: {
-          glucose: -0.25,
-          temp: -0.035
-        },
-
-        appropriate: (state) =>
-          state.temp < 36.35
-      },
-
-      thyroxine: {
-        name: "티록신",
-        duration: 8,
-
-        rates: {
-          glucose: -0.65,
-          temp: 0.07,
+          glucose: 0.9,
+          temp: 0.13,
           osm: 0.12
         },
 
         rebound: {
-          temp: -0.025
+          glucose: -0.22,
+          temp: -0.034
         },
 
         appropriate: (state) =>
-          state.temp < 36.25
+          state.temp < 36.35 ||
+          (
+            state.temp < 36.62 &&
+            state.trends.temp < -0.045
+          )
+      },
+
+      thyroxine: {
+        name: "티록신",
+
+        axis: "temp",
+        direction: 1,
+
+        duration: 7.2,
+        feedback: 12,
+
+        rates: {
+          glucose: -0.32,
+          temp: 0.064,
+          osm: 0.08
+        },
+
+        rebound: {
+          temp: -0.022
+        },
+
+        appropriate: (state) =>
+          state.temp < 36.25 ||
+          (
+            state.temp < 36.55 &&
+            state.trends.temp < -0.06
+          )
       },
 
       sweat: {
         name: "발한",
-        duration: 4.5,
+
+        axis: "temp",
+        direction: -1,
+
+        duration: 4.4,
+        feedback: 12,
 
         rates: {
-          temp: -0.15,
-          osm: 0.65
+          temp: -0.145,
+          osm: 0.56
         },
 
         rebound: {
-          temp: 0.035
+          temp: 0.034
         },
 
         appropriate: (state) =>
-          state.temp > 37.25
+          state.temp > 37.15 ||
+          (
+            state.temp > 36.95 &&
+            state.trends.temp > 0.055
+          )
       },
 
       adh: {
         name: "ADH",
+
+        axis: "osm",
+        direction: -1,
+
         duration: 5,
+        feedback: 10,
 
         rates: {
-          osm: -1.1
+          osm: -1.05
         },
 
         rebound: {
-          osm: 0.5
+          osm: 0.38
         },
 
         appropriate: (state) =>
-          state.osm > 296
+          state.osm > 295 ||
+          (
+            state.osm > 291.5 &&
+            state.trends.osm > 0.35
+          )
       },
 
       water: {
         name: "수분 보급",
-        duration: 2,
+
+        axis: "osm",
+        direction: -1,
+
+        duration: 2.2,
+        feedback: 9,
 
         rates: {
-          osm: -2.3,
-          temp: -0.03
+          osm: -2.2,
+          temp: -0.018
         },
 
         rebound: {
-          osm: 0.4
+          osm: 0.42
         },
 
         appropriate: (state) =>
-          state.osm > 297
+          state.osm > 298 ||
+          (
+            state.osm > 293 &&
+            state.trends.osm > 0.5
+          )
       }
     };
 
+    const MISSION_TEMPLATES = [
+      {
+        type: "steady",
+        icon: "◎",
+
+        title: "황금 8초",
+
+        description:
+          "모든 수치를 8초 연속 안전 범위에 유지",
+
+        target: 8
+      },
+
+      {
+        type: "lowLoad",
+        icon: "↺",
+
+        title: "저자극 관제",
+
+        description:
+          "피드백 부하 35% 이하를 10초간 유지",
+
+        target: 10
+      },
+
+      {
+        type: "precision",
+        icon: "✦",
+
+        title: "정밀 처치",
+
+        description:
+          "올바른 조절을 연속 3회 성공",
+
+        target: 3
+      },
+
+      {
+        type: "patience",
+        icon: "◷",
+
+        title: "관찰도 조절이다",
+
+        description:
+          "버튼 없이 안전 상태를 5초간 유지",
+
+        target: 5
+      }
+    ];
+
     let state;
-    let frameId;
+    let frameId = null;
     let lastFrame = 0;
-    let guidePausedGame = false;
+
+    let audioContext = null;
+    let soundEnabled = true;
+
+    let helpPausedGame = false;
 
     function freshState() {
       return {
         running: false,
         paused: false,
 
-        locked: false,
-        lockTime: 0,
-
         elapsed: 0,
-        timeLeft: 120,
+        timeLeft: GAME_DURATION,
 
         glucose: 100,
         temp: 36.7,
         osm: 290,
-
-        previous: {
-          glucose: 100,
-          temp: 36.7,
-          osm: 290
-        },
 
         trends: {
           glucose: 0,
@@ -1863,17 +3305,53 @@
 
         stability: 100,
         feedback: 0,
+
         score: 0,
-        safeTime: 0,
 
-        nextEvent: 5,
-        pendingEvent: null,
+        combo: 0,
+        comboTimer: 0,
+
+        boost: 0,
+        boostTime: 0,
+
+        locked: false,
+        lockTime: 0,
+
         activeEvent: null,
+        pendingEvent: null,
 
-        influences: [],
+        timeToNext: 4.5,
+
+        bossIndex: 0,
+        lastEventId: null,
+
+        eventCommands: 0,
+
+        effects: [],
         rebounds: [],
 
-        lastAction: {},
+        lastActionAt: {},
+        lastAnyAction: -99,
+
+        mission: null,
+        missionCooldown: 0,
+        lastMissionType: null,
+
+        safeTime: 0,
+
+        totalActions: 0,
+        goodActions: 0,
+
+        perfects: 0,
+        shutdowns: 0,
+        oscillations: 0,
+
+        bossesSurvived: 0,
+        missionsCompleted: 0,
+
+        actionCount: {},
+
+        achievements: new Set(),
 
         previousSide: {
           glucose: 0,
@@ -1881,25 +3359,38 @@
           osm: 0
         },
 
-        lastOscillationAt: {
-          glucose: -10,
-          temp: -10,
-          osm: -10
+        lastCrossAt: {
+          glucose: -99,
+          temp: -99,
+          osm: -99
         },
 
-        oscillations: 0,
-        shutdowns: 0
+        axisStress: {
+          glucose: 0,
+          temp: 0,
+          osm: 0
+        }
       };
     }
 
     function startGame() {
+      cancelAnimationFrame(frameId);
+
+      ensureAudio();
+
       state = freshState();
       state.running = true;
 
+      createMission();
+
       lastFrame = performance.now();
-      guidePausedGame = false;
+      helpPausedGame = false;
 
       $("introOverlay").classList.add(
+        "hidden"
+      );
+
+      $("helpOverlay").classList.add(
         "hidden"
       );
 
@@ -1912,16 +3403,20 @@
       );
 
       $("pauseButton").disabled = false;
-      $("recoveryButton").disabled = false;
 
       setMessage(
-        "관제 시작. 다음 사건을 확인하세요.",
+        "관제 시작. 사건 경고가 뜨면 변화 방향부터 읽으세요.",
         "good"
       );
 
-      render();
+      showToast(
+        "MISSION START · 90초 동안 기준점을 지키세요",
+        "good"
+      );
 
-      cancelAnimationFrame(frameId);
+      playSound("start");
+
+      render();
 
       frameId =
         requestAnimationFrame(loop);
@@ -1932,10 +3427,11 @@
         return;
       }
 
-      const deltaTime = Math.min(
-        (now - lastFrame) / 1000,
-        0.05
-      );
+      const deltaTime =
+        Math.min(
+          (now - lastFrame) / 1000,
+          0.05
+        );
 
       lastFrame = now;
 
@@ -1952,173 +3448,28 @@
     function update(deltaTime) {
       state.elapsed += deltaTime;
 
-      state.timeLeft = Math.max(
-        0,
-        state.timeLeft - deltaTime
-      );
+      state.timeLeft =
+        Math.max(
+          0,
+          state.timeLeft - deltaTime
+        );
 
       updateEvent(deltaTime);
-      updateInfluences(deltaTime);
+      updateEffects(deltaTime);
       updateRebounds(deltaTime);
+      updateMission(deltaTime);
 
-      state.previous = {
-        glucose: state.glucose,
-        temp: state.temp,
-        osm: state.osm
-      };
+      if (state.comboTimer > 0) {
+        state.comboTimer -= deltaTime;
 
-      /*
-        인체가 스스로 기준점으로 돌아가려는
-        기본적인 항상성 회복 작용
-      */
-
-      let rates = {
-        glucose:
-          (
-            limits.glucose.setpoint -
-            state.glucose
-          ) * 0.018,
-
-        temp:
-          (
-            limits.temp.setpoint -
-            state.temp
-          ) * 0.025,
-
-        osm:
-          (
-            limits.osm.setpoint -
-            state.osm
-          ) * 0.018
-      };
-
-      if (state.activeEvent) {
-        addRates(
-          rates,
-          state.activeEvent.rates
-        );
-      }
-
-      state.influences.forEach(
-        (effect) => {
-          addRates(
-            rates,
-            effect.rates
-          );
+        if (state.comboTimer <= 0) {
+          state.combo = 0;
         }
-      );
-
-      state.rebounds
-        .filter(
-          (effect) =>
-            effect.delay <= 0
-        )
-        .forEach(
-          (effect) => {
-            addRates(
-              rates,
-              effect.rates
-            );
-          }
-        );
-
-      state.glucose = clamp(
-        state.glucose +
-          rates.glucose * deltaTime,
-
-        20,
-        240
-      );
-
-      state.temp = clamp(
-        state.temp +
-          rates.temp * deltaTime,
-
-        32,
-        42
-      );
-
-      state.osm = clamp(
-        state.osm +
-          rates.osm * deltaTime,
-
-        240,
-        350
-      );
-
-      state.trends.glucose =
-        (
-          state.glucose -
-          state.previous.glucose
-        ) / deltaTime;
-
-      state.trends.temp =
-        (
-          state.temp -
-          state.previous.temp
-        ) / deltaTime;
-
-      state.trends.osm =
-        (
-          state.osm -
-          state.previous.osm
-        ) / deltaTime;
-
-      /*
-        시간이 지나면 피드백 부하가
-        조금씩 자연 회복됨
-      */
-
-      state.feedback = Math.max(
-        0,
-        state.feedback -
-          2.1 * deltaTime
-      );
-
-      const safe = isSafe();
-
-      if (safe) {
-        state.safeTime += deltaTime;
-
-        state.score +=
-          10 * deltaTime;
-
-        state.stability = Math.min(
-          100,
-          state.stability +
-            0.25 * deltaTime
-        );
-      } else {
-        state.stability = Math.max(
-          0,
-
-          state.stability -
-            deviationDamage() *
-              deltaTime
-        );
       }
 
-      /*
-        피드백 부하가 70% 이상이면
-        안정도가 추가로 떨어짐
-      */
-
-      if (state.feedback > 70) {
-        state.stability = Math.max(
-          0,
-
-          state.stability -
-            (
-              state.feedback - 70
-            ) *
-              0.012 *
-              deltaTime
-        );
+      if (state.boostTime > 0) {
+        state.boostTime -= deltaTime;
       }
-
-      /*
-        일시적인 수용체 셧다운
-      */
 
       if (state.locked) {
         state.lockTime -= deltaTime;
@@ -2134,23 +3485,260 @@
             "수용체가 회복되어 제어 권한이 돌아왔습니다.",
             "good"
           );
+
+          showToast(
+            "제어권 회복",
+            "good"
+          );
+
+          playSound("recover");
         }
       }
 
-      detectOscillation();
+      const previous = {
+        glucose: state.glucose,
+        temp: state.temp,
+        osm: state.osm
+      };
 
       /*
-        게임 종료 조건
+        기본적인 자연 항상성 작용
       */
+
+      const rates = {
+        glucose:
+          (
+            LIMITS.glucose.setpoint -
+            state.glucose
+          ) *
+            0.017 +
+
+          Math.sin(
+            state.elapsed * 0.85
+          ) *
+            0.025,
+
+        temp:
+          (
+            LIMITS.temp.setpoint -
+            state.temp
+          ) *
+            0.025 +
+
+          Math.sin(
+            state.elapsed * 0.55
+          ) *
+            0.0008,
+
+        osm:
+          (
+            LIMITS.osm.setpoint -
+            state.osm
+          ) *
+            0.017 +
+
+          Math.sin(
+            state.elapsed * 0.7
+          ) *
+            0.012
+      };
+
+      /*
+        외부 사건 영향
+      */
+
+      if (state.activeEvent) {
+        const eventScale =
+          state.boostTime > 0
+            ? 0.72
+            : 1;
+
+        addRates(
+          rates,
+          scaleRates(
+            state.activeEvent.rates,
+            eventScale
+          )
+        );
+      }
+
+      /*
+        현재 작용 중인 호르몬
+      */
+
+      state.effects.forEach(
+        (effect) => {
+          addRates(
+            rates,
+            effect.rates
+          );
+        }
+      );
+
+      /*
+        지연된 반동 효과
+      */
+
+      state.rebounds
+        .filter(
+          (effect) =>
+            effect.delay <= 0
+        )
+        .forEach(
+          (effect) => {
+            addRates(
+              rates,
+              effect.rates
+            );
+          }
+        );
+
+      state.glucose =
+        clamp(
+          state.glucose +
+            rates.glucose *
+              deltaTime,
+
+          20,
+          240
+        );
+
+      state.temp =
+        clamp(
+          state.temp +
+            rates.temp *
+              deltaTime,
+
+          32,
+          42
+        );
+
+      state.osm =
+        clamp(
+          state.osm +
+            rates.osm *
+              deltaTime,
+
+          240,
+          350
+        );
+
+      state.trends.glucose =
+        (
+          state.glucose -
+          previous.glucose
+        ) /
+        Math.max(
+          deltaTime,
+          0.001
+        );
+
+      state.trends.temp =
+        (
+          state.temp -
+          previous.temp
+        ) /
+        Math.max(
+          deltaTime,
+          0.001
+        );
+
+      state.trends.osm =
+        (
+          state.osm -
+          previous.osm
+        ) /
+        Math.max(
+          deltaTime,
+          0.001
+        );
+
+      /*
+        버튼을 쉬면 피드백 부하가 더 빨리 감소
+      */
+
+      const sinceAction =
+        state.elapsed -
+        state.lastAnyAction;
+
+      const naturalRecovery =
+        sinceAction > 1.2
+          ? 2.7
+          : 1.65;
+
+      state.feedback =
+        Math.max(
+          0,
+
+          state.feedback -
+            naturalRecovery *
+              deltaTime
+        );
+
+      const safe =
+        isSafe();
+
+      const multiplier =
+        comboMultiplier();
+
+      if (safe) {
+        state.safeTime +=
+          deltaTime;
+
+        state.score +=
+          8 *
+          multiplier *
+          deltaTime;
+
+        state.stability =
+          Math.min(
+            100,
+
+            state.stability +
+              0.23 *
+                deltaTime
+          );
+      } else {
+        const boostProtection =
+          state.boostTime > 0
+            ? 0.72
+            : 1;
+
+        state.stability =
+          Math.max(
+            0,
+
+            state.stability -
+              deviationDamage() *
+                boostProtection *
+                deltaTime
+          );
+      }
+
+      if (state.feedback > 70) {
+        state.stability =
+          Math.max(
+            0,
+
+            state.stability -
+              (
+                state.feedback -
+                70
+              ) *
+                0.014 *
+                deltaTime
+          );
+      }
+
+      accumulateAxisStress(
+        deltaTime
+      );
+
+      detectOscillation();
 
       if (
         state.stability <= 0 ||
-        state.glucose <= 38 ||
-        state.glucose >= 215 ||
-        state.temp <= 33.8 ||
-        state.temp >= 40.5 ||
-        state.osm <= 258 ||
-        state.osm >= 333
+        isFatal()
       ) {
         finish(
           false,
@@ -2161,7 +3749,7 @@
       ) {
         finish(
           true,
-          "2분 동안 신체의 기준점을 지켜냈습니다."
+          "두 번의 보스 위기를 지나 90초 동안 항상성을 지켜냈습니다."
         );
       }
     }
@@ -2172,69 +3760,260 @@
           deltaTime;
 
         if (
-          state.activeEvent.remaining <= 0
+          state.activeEvent.remaining <=
+          0
         ) {
-          setMessage(
-            `${state.activeEvent.title}의 영향이 끝났습니다.`,
-            "good"
-          );
+          const ended =
+            state.activeEvent;
 
           state.activeEvent = null;
+
+          if (ended.boss) {
+            state.bossesSurvived += 1;
+
+            state.score +=
+              500 *
+              comboMultiplier();
+
+            state.boost =
+              clamp(
+                state.boost + 22,
+                0,
+                100
+              );
+
+            state.combo += 2;
+            state.comboTimer = 8;
+
+            showToast(
+              "BOSS CLEAR · 위기 극복 +500",
+              "boss"
+            );
+
+            flash("good");
+            playSound("bossClear");
+
+            unlockAchievement(
+              "☄ 보스 브레이커"
+            );
+          } else {
+            showToast(
+              `${ended.title} 영향 종료`,
+              "good"
+            );
+          }
+
+          state.timeToNext =
+            nextEventInterval();
         }
       }
 
-      state.nextEvent -= deltaTime;
-
-      /*
-        사건 3초 전 미리 경고
-      */
-
-      if (
-        !state.pendingEvent &&
-        state.nextEvent <= 3
-      ) {
-        state.pendingEvent =
-          pick(events);
+      if (state.activeEvent) {
+        return;
       }
 
-      /*
-        실제 사건 발생
-      */
+      const bossTime =
+        BOSS_TIMES[
+          state.bossIndex
+        ];
+
+      const bossDue =
+        bossTime !== undefined &&
+        state.elapsed >=
+          bossTime - 4;
 
       if (
-        state.nextEvent <= 0 &&
-        state.pendingEvent
+        bossDue &&
+        (
+          !state.pendingEvent ||
+          !state.pendingEvent.boss
+        )
       ) {
-        state.activeEvent = {
-          ...state.pendingEvent,
+        const bossTemplate =
+          BOSS_EVENTS[
+            state.bossIndex %
+            BOSS_EVENTS.length
+          ];
 
-          remaining:
-            state.pendingEvent.duration
+        state.pendingEvent = {
+          ...bossTemplate,
+
+          countdown: 4,
+          warningTotal: 4
         };
 
+        state.bossIndex += 1;
+        state.timeToNext = 999;
+
+        showToast(
+          "⚠ BOSS CRISIS 접근 중",
+          "boss"
+        );
+
         setMessage(
-          `${state.activeEvent.title} 발생: ${state.activeEvent.description}`,
+          `${bossTemplate.title} 예고. 여러 수치가 동시에 흔들립니다.`,
           "warn"
         );
 
-        state.pendingEvent = null;
+        playSound("bossWarning");
+      }
 
-        state.nextEvent =
-          random(12, 17);
+      if (state.pendingEvent) {
+        state.pendingEvent.countdown -=
+          deltaTime;
+
+        if (
+          state.pendingEvent.countdown <=
+          0
+        ) {
+          startPendingEvent();
+        }
+
+        return;
+      }
+
+      state.timeToNext -=
+        deltaTime;
+
+      if (state.timeToNext <= 3) {
+        const candidates =
+          REGULAR_EVENTS.filter(
+            (event) =>
+              event.id !==
+              state.lastEventId
+          );
+
+        const eventTemplate =
+          pick(
+            candidates.length
+              ? candidates
+              : REGULAR_EVENTS
+          );
+
+        state.pendingEvent = {
+          ...eventTemplate,
+
+          countdown:
+            Math.max(
+              0.7,
+              state.timeToNext
+            ),
+
+          warningTotal:
+            Math.max(
+              0.7,
+              state.timeToNext
+            )
+        };
+
+        state.timeToNext = 999;
       }
     }
 
-    function updateInfluences(
+    function startPendingEvent() {
+      const stage =
+        getStage();
+
+      const stagePower =
+        stage === 1
+          ? 1
+          : stage === 2
+            ? 1.1
+            : 1.22;
+
+      const event =
+        state.pendingEvent;
+
+      state.activeEvent = {
+        ...event,
+
+        remaining:
+          event.duration,
+
+        totalDuration:
+          event.duration,
+
+        startedAt:
+          state.elapsed,
+
+        rates:
+          scaleRates(
+            event.rates,
+            stagePower
+          )
+      };
+
+      state.pendingEvent = null;
+      state.lastEventId = event.id;
+      state.eventCommands = 0;
+
+      setMessage(
+        `${event.title} 발생: ${event.description}`,
+
+        event.boss
+          ? "bad"
+          : "warn"
+      );
+
+      showToast(
+        `${event.icon} ${event.title} 발생`,
+
+        event.boss
+          ? "boss"
+          : "warn"
+      );
+
+      flash(
+        event.boss
+          ? "boss"
+          : "bad"
+      );
+
+      impact();
+
+      playSound(
+        event.boss
+          ? "bossStart"
+          : "event"
+      );
+    }
+
+    function nextEventInterval() {
+      const stage =
+        getStage();
+
+      if (stage === 1) {
+        return random(
+          6.8,
+          9.2
+        );
+      }
+
+      if (stage === 2) {
+        return random(
+          5.8,
+          7.8
+        );
+      }
+
+      return random(
+        4.8,
+        6.8
+      );
+    }
+
+    function updateEffects(
       deltaTime
     ) {
-      state.influences.forEach(
+      state.effects.forEach(
         (effect) => {
-          effect.remaining -= deltaTime;
+          effect.remaining -=
+            deltaTime;
         }
       );
 
-      state.influences =
-        state.influences.filter(
+      state.effects =
+        state.effects.filter(
           (effect) =>
             effect.remaining > 0
         );
@@ -2245,7 +4024,8 @@
     ) {
       state.rebounds.forEach(
         (effect) => {
-          effect.delay -= deltaTime;
+          effect.delay -=
+            deltaTime;
 
           if (effect.delay <= 0) {
             effect.remaining -=
@@ -2261,21 +4041,10 @@
         );
     }
 
-    function addRates(
-      target,
-      source
+    function useAction(
+      actionKey,
+      sourceButton
     ) {
-      target.glucose +=
-        source.glucose || 0;
-
-      target.temp +=
-        source.temp || 0;
-
-      target.osm +=
-        source.osm || 0;
-    }
-
-    function useAction(actionKey) {
       if (
         !state.running ||
         state.paused ||
@@ -2285,99 +4054,153 @@
       }
 
       const action =
-        actions[actionKey];
+        ACTIONS[actionKey];
 
-      /*
-        같은 버튼을 3.2초 이내에 다시 누르면
-        연속 투여로 판정
-      */
+      if (!action) {
+        return;
+      }
 
       const repeated =
         state.elapsed -
           (
-            state.lastAction[
+            state.lastActionAt[
               actionKey
-            ] ?? -99
+            ] ??
+            -99
           ) <
-        3.2;
+        2.35;
+
+      const spam =
+        state.elapsed -
+          state.lastAnyAction <
+        0.45;
+
+      const countering =
+        countersCurrentEvent(
+          action
+        );
 
       const appropriate =
-        action.appropriate(state);
+        action.appropriate(
+          state
+        ) ||
+        countering;
+
+      const perfect =
+        appropriate &&
+        countering &&
+        !repeated &&
+        !spam;
 
       /*
         피드백 부하가 높을수록
-        같은 호르몬의 효과가 약해짐
+        같은 호르몬의 효과가 감소
       */
 
-      const efficiency = clamp(
-        1 -
-          state.feedback / 145,
+      const efficiency =
+        clamp(
+          1 -
+            state.feedback /
+              145,
 
-        0.42,
-        1
-      );
+          0.42,
+          1
+        );
 
-      const rateScale =
+      const effectScale =
         efficiency *
         (
           repeated
-            ? 0.78
+            ? 0.76
+            : 1
+        ) *
+        (
+          spam
+            ? 0.85
             : 1
         );
 
-      state.influences.push({
+      state.effects.push({
+        key: actionKey,
+        name: action.name,
+        axis: action.axis,
+
         remaining:
+          action.duration,
+
+        totalDuration:
           action.duration,
 
         rates:
           scaleRates(
             action.rates,
-            rateScale
+            effectScale
           )
       });
 
       /*
-        잘못된 타이밍이나 연속 사용은
-        피드백 부하를 더 크게 높임
+        잘못된 타이밍과 연타는
+        피드백 부하를 크게 높임
       */
 
       const loadGain =
-        11 +
+        action.feedback +
+
         (
           repeated
             ? 13
             : 0
         ) +
+
+        (
+          spam
+            ? 6
+            : 0
+        ) +
+
         (
           appropriate
             ? 0
-            : 7
+            : 8
+        );
+
+      state.feedback =
+        clamp(
+          state.feedback +
+            loadGain,
+
+          0,
+          105
         );
 
       /*
-        호르몬 효과가 끝난 뒤 발생할
-        반대 방향 반동의 크기
+        작용이 끝난 뒤 반대 방향 반동
       */
 
       const reboundScale =
-        0.75 +
-        state.feedback / 85 +
+        0.65 +
+
+        state.feedback /
+          115 +
+
         (
           repeated
-            ? 0.7
+            ? 0.68
             : 0
         ) +
+
         (
           appropriate
             ? 0
-            : 0.45
+            : 0.48
         );
 
       state.rebounds.push({
         delay:
-          action.duration + 0.8,
+          action.duration +
+          0.45,
 
-        remaining: 4.2,
+        remaining: 3.5,
 
         rates:
           scaleRates(
@@ -2386,61 +4209,244 @@
           )
       });
 
-      state.feedback = Math.min(
-        105,
-        state.feedback + loadGain
-      );
-
-      state.lastAction[actionKey] =
+      state.lastActionAt[
+        actionKey
+      ] =
         state.elapsed;
 
-      let message =
-        `${action.name} 실행`;
+      state.lastAnyAction =
+        state.elapsed;
 
-      if (repeated) {
-        message +=
-          " · 연속 사용으로 반동 증가";
+      state.totalActions += 1;
+      state.eventCommands += 1;
+
+      state.actionCount[
+        actionKey
+      ] =
+        (
+          state.actionCount[
+            actionKey
+          ] ||
+          0
+        ) +
+        1;
+
+      if (perfect) {
+        const points =
+          Math.round(
+            220 *
+            comboMultiplier()
+          );
+
+        state.score +=
+          points;
+
+        state.combo += 2;
+        state.comboTimer = 8;
+
+        state.boost =
+          clamp(
+            state.boost + 18,
+            0,
+            100
+          );
+
+        state.goodActions += 1;
+        state.perfects += 1;
+
+        progressPrecisionMission(
+          true
+        );
+
+        setMessage(
+          `PERFECT! ${action.name}이(가) 사건의 변화를 정확히 상쇄합니다.`,
+          "good"
+        );
+
+        popScore(
+          `PERFECT +${points}`,
+          sourceButton,
+          "perfect"
+        );
+
+        showToast(
+          `PERFECT · ${action.name}`,
+          "good"
+        );
+
+        flash("good");
+        playSound("perfect");
+
+        if (
+          state.perfects === 1
+        ) {
+          unlockAchievement(
+            "⚡ 첫 PERFECT"
+          );
+        }
+
+        if (
+          state.combo >= 5
+        ) {
+          unlockAchievement(
+            "🔥 콤보 마스터"
+          );
+        }
+      } else if (
+        appropriate &&
+        !repeated &&
+        !spam
+      ) {
+        const points =
+          Math.round(
+            90 *
+            comboMultiplier()
+          );
+
+        state.score +=
+          points;
+
+        state.combo += 1;
+        state.comboTimer = 7;
+
+        state.boost =
+          clamp(
+            state.boost + 8,
+            0,
+            100
+          );
+
+        state.goodActions += 1;
+
+        progressPrecisionMission(
+          true
+        );
+
+        setMessage(
+          `GOOD! ${action.name} 조절이 현재 변화 방향에 적절합니다.`,
+          "good"
+        );
+
+        popScore(
+          `GOOD +${points}`,
+          sourceButton,
+          "good"
+        );
+
+        playSound("good");
       } else if (appropriate) {
-        message +=
-          " · 적절한 타이밍";
+        const points = 35;
+
+        state.score +=
+          points;
+
+        state.boost =
+          clamp(
+            state.boost + 3,
+            0,
+            100
+          );
+
+        progressPrecisionMission(
+          false
+        );
+
+        setMessage(
+          `${action.name} 방향은 맞지만 연속 사용으로 반동이 커졌습니다.`,
+          "warn"
+        );
+
+        popScore(
+          `반동 주의 +${points}`,
+          sourceButton,
+          "bad"
+        );
+
+        playSound("warn");
       } else {
-        message +=
-          " · 과잉 조절 가능";
+        state.score =
+          Math.max(
+            0,
+            state.score - 45
+          );
+
+        state.stability =
+          Math.max(
+            0,
+            state.stability - 2.8
+          );
+
+        state.combo = 0;
+        state.comboTimer = 0;
+
+        progressPrecisionMission(
+          false,
+          true
+        );
+
+        setMessage(
+          `${action.name}은(는) 현재 수치에 불필요합니다. 과잉 조절 위험!`,
+          "bad"
+        );
+
+        popScore(
+          "MISS -45",
+          sourceButton,
+          "bad"
+        );
+
+        flash("bad");
+        playSound("bad");
       }
 
-      setMessage(
-        message,
-
-        repeated || !appropriate
-          ? "warn"
-          : "good"
-      );
-
-      if (state.feedback >= 92) {
+      if (
+        state.feedback >= 92
+      ) {
         triggerShutdown();
       }
     }
 
-    function scaleRates(
-      rates,
-      scale
+    function countersCurrentEvent(
+      action
     ) {
-      return {
-        glucose:
-          (
-            rates.glucose || 0
-          ) * scale,
+      if (!state.activeEvent) {
+        return false;
+      }
 
-        temp:
-          (
-            rates.temp || 0
-          ) * scale,
+      if (
+        state.elapsed -
+          state.activeEvent.startedAt >
+        4.6
+      ) {
+        return false;
+      }
 
-        osm:
-          (
-            rates.osm || 0
-          ) * scale
-      };
+      const eventRate =
+        state.activeEvent.rates[
+          action.axis
+        ] ||
+        0;
+
+      const meaningfulRate = {
+        glucose: 0.5,
+        temp: 0.025,
+        osm: 0.18
+      }[
+        action.axis
+      ];
+
+      if (
+        Math.abs(eventRate) <
+        meaningfulRate
+      ) {
+        return false;
+      }
+
+      return (
+        eventRate *
+        action.direction <
+        0
+      );
     }
 
     function triggerShutdown() {
@@ -2449,137 +4455,473 @@
       }
 
       state.locked = true;
-      state.lockTime = 3.5;
+      state.lockTime = 3.2;
+
       state.shutdowns += 1;
 
-      state.stability = Math.max(
-        0,
-        state.stability - 12
+      state.stability =
+        Math.max(
+          0,
+          state.stability - 11
+        );
+
+      state.feedback = 66;
+
+      state.combo = 0;
+      state.comboTimer = 0;
+
+      state.effects.forEach(
+        (effect) => {
+          effect.remaining *=
+            0.55;
+        }
       );
-
-      /*
-        완전 초기화가 아니라
-        높은 부하가 일부 남도록 설정
-      */
-
-      state.feedback = 68;
 
       $("lockBanner").classList.remove(
         "hidden"
       );
 
       setMessage(
-        "호르몬 과다 사용으로 음성 피드백 셧다운이 발생했습니다.",
+        "음성 피드백 과부하! 수용체가 일시적으로 신호를 차단했습니다.",
         "bad"
       );
+
+      showToast(
+        "RECEPTOR LOCK · 3초 셧다운",
+        "bad"
+      );
+
+      flash("bad");
+      impact();
+
+      playSound("shutdown");
     }
 
-    function recover() {
+    function activateBoost() {
       if (
         !state.running ||
         state.paused ||
-        state.locked
+        state.locked ||
+        state.boost < 100
       ) {
         return;
       }
 
-      if (state.feedback < 12) {
-        setMessage(
-          "현재 피드백 부하가 낮아 회복 모드가 필요하지 않습니다.",
-          "warn"
+      state.boost = 0;
+      state.boostTime = 7;
+
+      state.feedback =
+        Math.max(
+          0,
+          state.feedback - 36
         );
+
+      state.stability =
+        Math.min(
+          100,
+          state.stability + 9
+        );
+
+      state.glucose +=
+        (
+          LIMITS.glucose.setpoint -
+          state.glucose
+        ) *
+        0.42;
+
+      state.temp +=
+        (
+          LIMITS.temp.setpoint -
+          state.temp
+        ) *
+        0.42;
+
+      state.osm +=
+        (
+          LIMITS.osm.setpoint -
+          state.osm
+        ) *
+        0.42;
+
+      state.rebounds.forEach(
+        (effect) => {
+          effect.remaining *=
+            0.45;
+
+          effect.rates =
+            scaleRates(
+              effect.rates,
+              0.5
+            );
+        }
+      );
+
+      state.score += 180;
+
+      state.combo += 1;
+      state.comboTimer = 8;
+
+      setMessage(
+        "시상하부 긴급 통합 조절! 모든 수치를 기준점 방향으로 보정합니다.",
+        "good"
+      );
+
+      showToast(
+        "BOOST ACTIVE · 7초간 외부 충격 감소",
+        "good"
+      );
+
+      flash("good");
+      playSound("boost");
+
+      unlockAchievement(
+        "🧠 시상하부 오버드라이브"
+      );
+    }
+
+    function createMission() {
+      const candidates =
+        MISSION_TEMPLATES.filter(
+          (mission) =>
+            mission.type !==
+            state.lastMissionType
+        );
+
+      const template =
+        pick(
+          candidates.length
+            ? candidates
+            : MISSION_TEMPLATES
+        );
+
+      state.mission = {
+        ...template,
+
+        progress: 0,
+        complete: false,
+
+        startActionCount:
+          state.totalActions
+      };
+
+      state.lastMissionType =
+        template.type;
+    }
+
+    function updateMission(
+      deltaTime
+    ) {
+      if (
+        state.missionCooldown > 0
+      ) {
+        state.missionCooldown -=
+          deltaTime;
+
+        if (
+          state.missionCooldown <= 0
+        ) {
+          createMission();
+        }
 
         return;
       }
 
-      state.feedback = Math.max(
-        0,
-        state.feedback - 22
-      );
+      const mission =
+        state.mission;
 
-      /*
-        현재 남아 있는 호르몬 효과의
-        지속 시간을 25% 감소
-      */
+      if (
+        !mission ||
+        mission.complete
+      ) {
+        return;
+      }
 
-      state.influences.forEach(
-        (effect) => {
-          effect.remaining *= 0.75;
+      if (
+        mission.type === "steady"
+      ) {
+        mission.progress =
+          isSafe()
+            ? mission.progress +
+                deltaTime
+            : 0;
+      } else if (
+        mission.type === "lowLoad"
+      ) {
+        mission.progress =
+          state.feedback <= 35
+            ? mission.progress +
+                deltaTime
+            : 0;
+      } else if (
+        mission.type === "patience"
+      ) {
+        if (
+          state.totalActions !==
+          mission.startActionCount
+        ) {
+          mission.progress = 0;
+
+          mission.startActionCount =
+            state.totalActions;
+        } else {
+          mission.progress =
+            isSafe()
+              ? mission.progress +
+                  deltaTime
+              : 0;
         }
-      );
+      }
+
+      if (
+        mission.progress >=
+        mission.target
+      ) {
+        completeMission();
+      }
+    }
+
+    function progressPrecisionMission(
+      success,
+      reset = false
+    ) {
+      const mission =
+        state.mission;
+
+      if (
+        !mission ||
+        mission.type !==
+          "precision" ||
+        mission.complete
+      ) {
+        return;
+      }
+
+      if (
+        reset ||
+        !success
+      ) {
+        mission.progress = 0;
+      } else {
+        mission.progress += 1;
+      }
+
+      if (
+        mission.progress >=
+        mission.target
+      ) {
+        completeMission();
+      }
+    }
+
+    function completeMission() {
+      const mission =
+        state.mission;
+
+      if (
+        !mission ||
+        mission.complete
+      ) {
+        return;
+      }
+
+      mission.complete = true;
+
+      mission.progress =
+        mission.target;
+
+      state.score += 350;
+
+      state.boost =
+        clamp(
+          state.boost + 30,
+          0,
+          100
+        );
+
+      state.missionsCompleted += 1;
+      state.missionCooldown = 3;
 
       setMessage(
-        "부교감 회복 모드: 잔류 신호와 피드백 부하를 낮췄습니다.",
+        `미니 미션 완료: ${mission.title} · 긴급 에너지 +30%`,
         "good"
       );
+
+      showToast(
+        `★ MISSION CLEAR · ${mission.title} +350`,
+        "good"
+      );
+
+      flash("good");
+      playSound("mission");
+
+      if (
+        state.missionsCompleted >= 2
+      ) {
+        unlockAchievement(
+          "★ 미션 헌터"
+        );
+      }
+    }
+
+    function comboMultiplier() {
+      return (
+        1 +
+        Math.min(
+          state.combo,
+          8
+        ) *
+        0.18
+      );
+    }
+
+    function getStage() {
+      if (state.elapsed < 28) {
+        return 1;
+      }
+
+      if (state.elapsed < 62) {
+        return 2;
+      }
+
+      return 3;
+    }
+
+    function stageName() {
+      const stage =
+        getStage();
+
+      if (stage === 1) {
+        return "CALIBRATION";
+      }
+
+      if (stage === 2) {
+        return "TURBULENCE";
+      }
+
+      return "FINAL SURGE";
     }
 
     function isSafe() {
-      return (
-        inRange("glucose") &&
-        inRange("temp") &&
-        inRange("osm")
+      return [
+        "glucose",
+        "temp",
+        "osm"
+      ].every(
+        (key) => {
+          const rule =
+            LIMITS[key];
+
+          return (
+            state[key] >=
+              rule.safeMin &&
+            state[key] <=
+              rule.safeMax
+          );
+        }
       );
     }
 
-    function inRange(key) {
-      const value = state[key];
-      const rule = limits[key];
+    function isFatal() {
+      return [
+        "glucose",
+        "temp",
+        "osm"
+      ].some(
+        (key) => {
+          const rule =
+            LIMITS[key];
 
-      return (
-        value >= rule.safeMin &&
-        value <= rule.safeMax
+          return (
+            state[key] <=
+              rule.fatalMin ||
+            state[key] >=
+              rule.fatalMax
+          );
+        }
       );
     }
 
-    function deviationDamage() {
-      return (
-        deviation(
-          "glucose",
-          24
-        ) *
-          2.2 +
-
-        deviation(
-          "temp",
-          0.75
-        ) *
-          4.2 +
-
-        deviation(
-          "osm",
-          12
-        ) *
-          2.4
-      );
-    }
-
-    function deviation(
-      key,
-      scale
+    function normalizedDeviation(
+      key
     ) {
-      const value = state[key];
-      const rule = limits[key];
+      const value =
+        state[key];
 
-      if (value < rule.safeMin) {
+      const rule =
+        LIMITS[key];
+
+      const scale =
+        key === "glucose"
+          ? 25
+          : key === "temp"
+            ? 0.75
+            : 12;
+
+      if (
+        value <
+        rule.safeMin
+      ) {
         return (
-          rule.safeMin - value
-        ) / scale;
+          rule.safeMin -
+          value
+        ) /
+        scale;
       }
 
-      if (value > rule.safeMax) {
+      if (
+        value >
+        rule.safeMax
+      ) {
         return (
-          value - rule.safeMax
-        ) / scale;
+          value -
+          rule.safeMax
+        ) /
+        scale;
       }
 
       return 0;
     }
 
-    /*
-      값이 기준점을 크게 넘어
-      반대쪽으로 이동했는지 검사
-    */
+    function deviationDamage() {
+      return (
+        normalizedDeviation(
+          "glucose"
+        ) *
+          2.25 +
+
+        normalizedDeviation(
+          "temp"
+        ) *
+          4.3 +
+
+        normalizedDeviation(
+          "osm"
+        ) *
+          2.45
+      );
+    }
+
+    function accumulateAxisStress(
+      deltaTime
+    ) {
+      state.axisStress.glucose +=
+        normalizedDeviation(
+          "glucose"
+        ) *
+        deltaTime;
+
+      state.axisStress.temp +=
+        normalizedDeviation(
+          "temp"
+        ) *
+        deltaTime;
+
+      state.axisStress.osm +=
+        normalizedDeviation(
+          "osm"
+        ) *
+        deltaTime;
+    }
 
     function detectOscillation() {
       [
@@ -2588,11 +4930,8 @@
         "osm"
       ].forEach(
         (key) => {
-          const distance =
-            Math.abs(
-              state[key] -
-              limits[key].setpoint
-            );
+          const rule =
+            LIMITS[key];
 
           const threshold =
             key === "glucose"
@@ -2601,14 +4940,23 @@
                 ? 0.16
                 : 3;
 
-          if (distance < threshold) {
+          const distance =
+            Math.abs(
+              state[key] -
+              rule.setpoint
+            );
+
+          if (
+            distance <
+            threshold
+          ) {
             return;
           }
 
           const side =
             Math.sign(
               state[key] -
-              limits[key].setpoint
+              rule.setpoint
             );
 
           if (
@@ -2616,16 +4964,23 @@
             side !==
               state.previousSide[key] &&
             state.elapsed -
-              state.lastOscillationAt[
-                key
-              ] >
-              2.5
+              state.lastCrossAt[key] >
+              2.4
           ) {
             state.oscillations += 1;
 
-            state.lastOscillationAt[
-              key
-            ] = state.elapsed;
+            state.lastCrossAt[key] =
+              state.elapsed;
+
+            state.feedback =
+              clamp(
+                state.feedback + 3,
+                0,
+                105
+              );
+
+            state.combo = 0;
+            state.comboTimer = 0;
 
             const name =
               key === "glucose"
@@ -2635,7 +4990,7 @@
                   : "삼투압";
 
             setMessage(
-              `${name} 기준점 진동이 감지되었습니다.`,
+              `${name}이 기준점을 빠르게 통과했습니다. 음성 피드백 진동 발생!`,
               "warn"
             );
           }
@@ -2644,6 +4999,51 @@
             side;
         }
       );
+    }
+
+    function addRates(
+      target,
+      source
+    ) {
+      target.glucose +=
+        source.glucose ||
+        0;
+
+      target.temp +=
+        source.temp ||
+        0;
+
+      target.osm +=
+        source.osm ||
+        0;
+    }
+
+    function scaleRates(
+      rates,
+      scale
+    ) {
+      return {
+        glucose:
+          (
+            rates.glucose ||
+            0
+          ) *
+          scale,
+
+        temp:
+          (
+            rates.temp ||
+            0
+          ) *
+          scale,
+
+        osm:
+          (
+            rates.osm ||
+            0
+          ) *
+          scale
+      };
     }
 
     function render() {
@@ -2656,6 +5056,17 @@
           state.timeLeft
         );
 
+      $("scoreValue").textContent =
+        Math.round(
+          state.score
+        ).toLocaleString();
+
+      $("comboValue").textContent =
+        `×${comboMultiplier().toFixed(1)}`;
+
+      $("stageValue").textContent =
+        stageName();
+
       $("stabilityValue").textContent =
         `${Math.round(
           state.stability
@@ -2666,32 +5077,21 @@
           state.feedback
         )}%`;
 
-      $("scoreValue").textContent =
-        Math.round(
-          state.score
-        ).toLocaleString();
-
-      $("stabilityBar").style.width =
+      $("stabilityFill").style.width =
         `${state.stability}%`;
 
-      $("feedbackBar").style.width =
+      $("feedbackFill").style.width =
         `${Math.min(
           100,
           state.feedback
         )}%`;
 
-      if (state.feedback > 75) {
-        $("feedbackBar").style.background =
-          "var(--red)";
-      } else if (
-        state.feedback > 50
-      ) {
-        $("feedbackBar").style.background =
-          "var(--yellow)";
-      } else {
-        $("feedbackBar").style.background =
-          "var(--mint)";
-      }
+      $("feedbackFill").style.background =
+        state.feedback > 75
+          ? "var(--red)"
+          : state.feedback > 48
+            ? "var(--yellow)"
+            : "var(--mint)";
 
       renderStat(
         "glucose",
@@ -2708,7 +5108,11 @@
         0
       );
 
+      renderEffects();
       renderEvent();
+      renderMission();
+      renderBoost();
+      renderAssistant();
 
       document
         .querySelectorAll(
@@ -2723,65 +5127,66 @@
           }
         );
 
-      $("recoveryButton").disabled =
-        !state.running ||
-        state.paused ||
-        state.locked;
-
       $("pauseButton").textContent =
         state.paused
           ? "계속하기"
           : "일시정지";
+
+      $("pauseButton").disabled =
+        !state.running;
     }
 
     function renderStat(
       key,
       decimals
     ) {
-      const value = state[key];
-      const rule = limits[key];
+      const rule =
+        LIMITS[key];
 
-      const id =
+      const value =
+        state[key];
+
+      const prefix =
         key === "temp"
           ? "temp"
           : key;
 
-      $(`${id}Value`).textContent =
+      const card =
+        $(`${prefix}Card`);
+
+      const badge =
+        $(`${prefix}State`);
+
+      $(`${prefix}Value`).textContent =
         value.toFixed(decimals);
 
-      const markerPosition = clamp(
-        (
+      $(`${prefix}Marker`).style.left =
+        `${clamp(
           (
-            value - rule.min
-          ) /
-          (
-            rule.max - rule.min
-          )
-        ) * 100,
+            (
+              value -
+              rule.min
+            ) /
+            (
+              rule.max -
+              rule.min
+            )
+          ) *
+            100,
 
-        0,
-        100
-      );
+          0,
+          100
+        )}%`;
 
-      $(`${id}Marker`).style.left =
-        `${markerPosition}%`;
-
-      $(`${id}Trend`).textContent =
+      $(`${prefix}Trend`).textContent =
         trendArrow(
           state.trends[key],
           key
         );
 
-      const card =
-        $(`${id}Card`);
-
-      const badge =
-        $(`${id}State`);
-
       card.classList.remove(
         "warning",
-        "danger",
-        "shake"
+        "danger"
       );
 
       badge.classList.remove(
@@ -2789,40 +5194,40 @@
         "danger"
       );
 
-      const critical =
+      if (
         value <= rule.min ||
-        value >= rule.max;
-
-      const safe =
-        value >= rule.safeMin &&
-        value <= rule.safeMax;
-
-      if (critical) {
-        badge.textContent = "위험";
+        value >= rule.max
+      ) {
+        card.classList.add(
+          "danger"
+        );
 
         badge.classList.add(
           "danger"
         );
 
-        card.classList.add(
-          "danger",
-          "shake"
-        );
-      } else if (!safe) {
         badge.textContent =
-          value < rule.safeMin
-            ? "낮음"
-            : "높음";
+          "위험";
+      } else if (
+        value < rule.safeMin ||
+        value > rule.safeMax
+      ) {
+        card.classList.add(
+          "warning"
+        );
 
         badge.classList.add(
           "warning"
         );
 
-        card.classList.add(
-          "warning"
-        );
+        badge.textContent =
+          value <
+          rule.safeMin
+            ? "낮음"
+            : "높음";
       } else {
-        badge.textContent = "정상";
+        badge.textContent =
+          "정상";
       }
     }
 
@@ -2835,109 +5240,455 @@
           ? 0.006
           : 0.08;
 
-      if (rate > threshold) {
+      if (
+        rate >
+        threshold
+      ) {
         return "↑";
       }
 
-      if (rate < -threshold) {
+      if (
+        rate <
+        -threshold
+      ) {
         return "↓";
       }
 
       return "→";
     }
 
+    function renderEffects() {
+      [
+        "glucose",
+        "temp",
+        "osm"
+      ].forEach(
+        (axis) => {
+          const relevant =
+            state.effects
+              .filter(
+                (effect) =>
+                  Math.abs(
+                    effect.rates[
+                      axis
+                    ] ||
+                    0
+                  ) >
+                  0.001
+              )
+              .sort(
+                (first, second) =>
+                  second.remaining -
+                  first.remaining
+              )
+              .slice(
+                0,
+                2
+              );
+
+          const element =
+            $(
+              `${
+                axis === "temp"
+                  ? "temp"
+                  : axis
+              }Effect`
+            );
+
+          if (
+            !relevant.length
+          ) {
+            element.textContent =
+              "현재 작용: 없음";
+
+            element.classList.remove(
+              "active"
+            );
+
+            return;
+          }
+
+          element.textContent =
+            `작용 중: ${
+              relevant
+                .map(
+                  (effect) =>
+                    `${effect.name} ${effect.remaining.toFixed(1)}초`
+                )
+                .join(" · ")
+            }`;
+
+          element.classList.add(
+            "active"
+          );
+        }
+      );
+    }
+
     function renderEvent() {
+      const panel =
+        $("eventPanel");
+
+      panel.classList.remove(
+        "boss"
+      );
+
       if (state.activeEvent) {
+        const event =
+          state.activeEvent;
+
+        panel.classList.toggle(
+          "boss",
+          Boolean(event.boss)
+        );
+
         $("eventIcon").textContent =
-          state.activeEvent.icon;
+          event.icon;
+
+        $("eventType").textContent =
+          event.boss
+            ? "BOSS CRISIS"
+            : "ACTIVE EVENT";
+
+        $("eventType").className =
+          `event-type${
+            event.boss
+              ? " boss"
+              : ""
+          }`;
 
         $("eventTitle").textContent =
-          state.activeEvent.title;
+          event.title;
 
         $("eventDescription").textContent =
-          state.activeEvent.description;
+          event.description;
 
         $("eventTime").textContent =
           `${Math.ceil(
-            state.activeEvent.remaining
+            event.remaining
           )}초`;
 
         $("eventTimeLabel").textContent =
           "영향 지속";
+
+        $("eventProgress").style.width =
+          `${clamp(
+            (
+              event.remaining /
+              event.totalDuration
+            ) *
+              100,
+
+            0,
+            100
+          )}%`;
+
+        $("eventProgress").style.background =
+          event.boss
+            ? "var(--purple)"
+            : "var(--mint)";
       } else if (
         state.pendingEvent
       ) {
+        const event =
+          state.pendingEvent;
+
+        panel.classList.toggle(
+          "boss",
+          Boolean(event.boss)
+        );
+
         $("eventIcon").textContent =
-          state.pendingEvent.icon;
+          event.icon;
+
+        $("eventType").textContent =
+          event.boss
+            ? "BOSS WARNING"
+            : "EVENT FORECAST";
+
+        $("eventType").className =
+          `event-type${
+            event.boss
+              ? " boss"
+              : ""
+          }`;
 
         $("eventTitle").textContent =
-          `${state.pendingEvent.title} 예고`;
+          `${event.title} 예고`;
 
         $("eventDescription").textContent =
-          state.pendingEvent.description;
+          event.description;
 
         $("eventTime").textContent =
           `${Math.ceil(
-            state.nextEvent
+            event.countdown
           )}초`;
 
         $("eventTimeLabel").textContent =
           "발생까지";
+
+        $("eventProgress").style.width =
+          `${clamp(
+            (
+              event.countdown /
+              event.warningTotal
+            ) *
+              100,
+
+            0,
+            100
+          )}%`;
+
+        $("eventProgress").style.background =
+          event.boss
+            ? "var(--purple)"
+            : "var(--yellow)";
       } else if (
         state.running
       ) {
         $("eventIcon").textContent =
           "◎";
 
+        $("eventType").textContent =
+          "ENVIRONMENT SCAN";
+
+        $("eventType").className =
+          "event-type";
+
         $("eventTitle").textContent =
-          "신체 상태 관찰 중";
+          "다음 사건 분석 중";
 
         $("eventDescription").textContent =
-          "잔류 호르몬이 사라질 때까지 수치를 관찰하세요.";
+          "잔류 호르몬이 사라지는 동안 수치의 방향을 관찰하세요.";
 
         $("eventTime").textContent =
           `${Math.ceil(
-            state.nextEvent
+            state.timeToNext
           )}초`;
 
         $("eventTimeLabel").textContent =
           "다음 사건";
+
+        $("eventProgress").style.width =
+          "0%";
       }
+    }
+
+    function renderMission() {
+      const mission =
+        state.mission;
+
+      if (!mission) {
+        return;
+      }
+
+      $("missionIcon").textContent =
+        mission.complete
+          ? "✓"
+          : mission.icon;
+
+      $("missionTitle").textContent =
+        mission.complete
+          ? `${mission.title} 완료!`
+          : mission.title;
+
+      $("missionDescription").textContent =
+        mission.complete
+          ? "보상 +350점 · 긴급 조절 에너지 +30%"
+          : mission.description;
+
+      const percentage =
+        clamp(
+          (
+            mission.progress /
+            mission.target
+          ) *
+            100,
+
+          0,
+          100
+        );
+
+      $("missionValue").textContent =
+        mission.type ===
+        "precision"
+          ? `${Math.floor(
+              mission.progress
+            )} / ${mission.target}`
+          : `${percentage.toFixed(0)}%`;
+
+      $("missionFill").style.width =
+        `${percentage}%`;
+
+      $("missionFill").style.background =
+        mission.complete
+          ? "var(--yellow)"
+          : "var(--mint)";
+    }
+
+    function renderBoost() {
+      const ready =
+        state.boost >= 100;
+
+      const button =
+        $("boostButton");
+
+      button.disabled =
+        !state.running ||
+        state.paused ||
+        state.locked ||
+        !ready;
+
+      button.classList.toggle(
+        "ready",
+        ready
+      );
+
+      $("boostTitle").textContent =
+        ready
+          ? "긴급 통합 조절 READY"
+          : "긴급 통합 조절";
+
+      $("boostText").textContent =
+        ready
+          ? "지금 사용 가능 · 단축키 B"
+          : `충전 ${Math.floor(
+              state.boost
+            )}% · 단축키 B`;
+
+      $("boostCharge").style.width =
+        `${state.boost}%`;
+    }
+
+    function renderAssistant() {
+      const avatar =
+        $("hypoAvatar");
+
+      avatar.classList.remove(
+        "warning",
+        "danger"
+      );
+
+      if (state.locked) {
+        avatar.classList.add(
+          "danger"
+        );
+
+        $("hypoText").textContent =
+          "피드백 과부하! 수용체가 잠깐 신호를 차단했어.";
+
+        $("hypoTip").textContent =
+          "회복 뒤에는 연타하지 말고 변화 방향을 먼저 확인하세요.";
+
+        return;
+      }
+
+      if (
+        state.pendingEvent?.boss
+      ) {
+        avatar.classList.add(
+          "warning"
+        );
+
+        $("hypoText").textContent =
+          "보스 위기 접근 중! 한 버튼만 연타하면 다른 수치가 무너질 수 있어.";
+
+        $("hypoTip").textContent =
+          state.pendingEvent.hint;
+
+        return;
+      }
+
+      if (state.activeEvent) {
+        avatar.classList.add(
+          state.activeEvent.boss
+            ? "danger"
+            : "warning"
+        );
+
+        $("hypoText").textContent =
+          state.activeEvent.boss
+            ? "복합 위기야. 가장 빠른 화살표부터 처리해!"
+            : state.activeEvent.hint;
+
+        $("hypoTip").textContent =
+          "사건 시작 4.6초 안에 정확히 대응하면 PERFECT 판정입니다.";
+
+        return;
+      }
+
+      if (
+        state.feedback > 72
+      ) {
+        avatar.classList.add(
+          "warning"
+        );
+
+        $("hypoText").textContent =
+          "너무 자주 눌렀어. 지금은 기다리는 게 가장 좋은 조절이야.";
+
+        $("hypoTip").textContent =
+          "피드백 부하는 버튼을 쉬면 자연스럽게 감소합니다.";
+
+        return;
+      }
+
+      if (isSafe()) {
+        $("hypoText").textContent =
+          "좋아, 세 수치가 모두 안전 범위야. 콤보를 지키며 다음 사건을 기다려!";
+
+        $("hypoTip").textContent =
+          state.boost >= 100
+            ? "긴급 통합 조절이 준비되었습니다."
+            : "미니 미션으로 긴급 조절 에너지를 모으세요.";
+
+        return;
+      }
+
+      const worst =
+        [
+          "glucose",
+          "temp",
+          "osm"
+        ].sort(
+          (first, second) =>
+            normalizedDeviation(
+              second
+            ) -
+            normalizedDeviation(
+              first
+            )
+        )[0];
+
+      avatar.classList.add(
+        "warning"
+      );
+
+      const names = {
+        glucose: "혈당",
+        temp: "체온",
+        osm: "삼투압"
+      };
+
+      $("hypoText").textContent =
+        `${names[worst]} 이탈이 가장 커. 화살표가 기준점 방향으로 바뀌는지 확인해!`;
+
+      $("hypoTip").textContent =
+        "이미 작용 중인 호르몬의 남은 시간도 함께 보세요.";
     }
 
     function setMessage(
       text,
       type = ""
     ) {
-      $("message").textContent = text;
-      $("message").className = type;
-    }
+      const element =
+        $("systemMessage");
 
-    function formatTime(seconds) {
-      const total = Math.max(
-        0,
-        Math.ceil(seconds)
-      );
+      element.textContent =
+        text;
 
-      const minutes =
-        Math.floor(total / 60);
-
-      const remainingSeconds =
-        total % 60;
-
-      return (
-        String(minutes).padStart(
-          2,
-          "0"
-        ) +
-        ":" +
-        String(
-          remainingSeconds
-        ).padStart(
-          2,
-          "0"
-        )
-      );
+      element.className =
+        `system-message ${type}`;
     }
 
     function togglePause() {
@@ -2957,7 +5708,7 @@
       setMessage(
         state.paused
           ? "관제가 일시정지되었습니다."
-          : "관제를 다시 시작합니다.",
+          : "관제를 재개합니다.",
 
         state.paused
           ? "warn"
@@ -2965,42 +5716,42 @@
       );
     }
 
-    function openGuide() {
+    function openHelp() {
       if (
         state.running &&
         !state.paused
       ) {
         state.paused = true;
-        guidePausedGame = true;
+        helpPausedGame = true;
       } else {
-        guidePausedGame = false;
+        helpPausedGame = false;
       }
 
-      $("startButton").textContent =
-        state.running
-          ? "게임으로 돌아가기"
-          : "관제 시작";
-
-      $("introOverlay").classList.remove(
+      $("helpOverlay").classList.remove(
         "hidden"
       );
+
+      render();
     }
 
-    function closeGuideOrStart() {
-      if (!state.running) {
-        startGame();
-      } else {
-        $("introOverlay").classList.add(
-          "hidden"
-        );
+    function closeHelp() {
+      $("helpOverlay").classList.add(
+        "hidden"
+      );
 
-        if (guidePausedGame) {
-          state.paused = false;
+      if (
+        helpPausedGame &&
+        state.running
+      ) {
+        state.paused = false;
 
-          lastFrame =
-            performance.now();
-        }
+        lastFrame =
+          performance.now();
       }
+
+      helpPausedGame = false;
+
+      render();
     }
 
     function finish(
@@ -3013,20 +5764,73 @@
 
       state.running = false;
 
-      cancelAnimationFrame(frameId);
+      cancelAnimationFrame(
+        frameId
+      );
+
+      $("pauseButton").disabled =
+        true;
 
       $("lockBanner").classList.add(
         "hidden"
       );
 
       const safeRate =
-        state.elapsed
+        state.elapsed > 0
           ? (
               state.safeTime /
               state.elapsed
             ) *
             100
           : 0;
+
+      const accuracy =
+        state.totalActions > 0
+          ? (
+              state.goodActions /
+              state.totalActions
+            ) *
+            100
+          : 0;
+
+      const gradeScore =
+        safeRate *
+          0.48 +
+
+        accuracy *
+          0.24 +
+
+        state.stability *
+          0.16 +
+
+        Math.max(
+          0,
+          100 -
+            state.shutdowns *
+              25
+        ) *
+          0.12;
+
+      let grade = "D";
+
+      if (gradeScore >= 90) {
+        grade = "S";
+      } else if (
+        gradeScore >= 78
+      ) {
+        grade = "A";
+      } else if (
+        gradeScore >= 64
+      ) {
+        grade = "B";
+      } else if (
+        gradeScore >= 49
+      ) {
+        grade = "C";
+      }
+
+      $("resultGrade").textContent =
+        grade;
 
       $("resultTitle").textContent =
         success
@@ -3044,21 +5848,602 @@
       $("resultSafe").textContent =
         `${safeRate.toFixed(1)}%`;
 
-      $("resultOscillation").textContent =
-        `${state.oscillations}회`;
+      $("resultPerfect").textContent =
+        `${state.perfects}회`;
 
       $("resultShutdown").textContent =
         `${state.shutdowns}회`;
+
+      const badges = [
+        ...state.achievements
+      ];
+
+      if (
+        success &&
+        state.shutdowns === 0
+      ) {
+        badges.push(
+          "🛡 노 셧다운"
+        );
+      }
+
+      if (
+        state.bossesSurvived >= 2
+      ) {
+        badges.push(
+          "👑 더블 보스 클리어"
+        );
+      }
+
+      if (
+        state.missionsCompleted >= 3
+      ) {
+        badges.push(
+          "⭐ 미션 올클리어"
+        );
+      }
+
+      $("resultBadges").innerHTML =
+        badges.length
+          ? badges
+              .map(
+                (badge) =>
+                  `<span class="badge">${badge}</span>`
+              )
+              .join("")
+          : `
+            <span class="badge">
+              다음 도전에서 배지를 획득하세요
+            </span>
+          `;
+
+      const worstAxis =
+        Object.entries(
+          state.axisStress
+        ).sort(
+          (first, second) =>
+            second[1] -
+            first[1]
+        )[0][0];
+
+      const lessons = {
+        glucose:
+          "혈당 조절에서 가장 큰 흔들림이 있었습니다. 인슐린과 글루카곤은 서로 반대 작용을 하므로, 하나의 효과가 남아 있는 동안 반대 호르몬을 성급하게 투여하면 진동이 커집니다.",
+
+        temp:
+          "체온 조절에서 가장 큰 흔들림이 있었습니다. 교감신경과 티록신은 열을 만들지만 혈당과 수분에도 영향을 주며, 발한은 체온을 낮추는 대신 삼투압을 높일 수 있습니다.",
+
+        osm:
+          "삼투압 조절에서 가장 큰 흔들림이 있었습니다. ADH는 수분 재흡수를 높이고 수분 보급은 더 빠르게 삼투압을 낮추므로, 현재 상승 속도에 맞춰 강도를 선택해야 합니다."
+      };
+
+      $("resultLesson").innerHTML =
+        `
+          <strong>학습 분석</strong><br>
+          ${lessons[worstAxis]}
+        `;
 
       $("resultOverlay").classList.remove(
         "hidden"
       );
 
-      $("pauseButton").disabled = true;
-      $("recoveryButton").disabled = true;
+      playSound(
+        success
+          ? "win"
+          : "lose"
+      );
     }
 
-    /* 버튼 이벤트 연결 */
+    function unlockAchievement(
+      label
+    ) {
+      if (
+        state.achievements.has(
+          label
+        )
+      ) {
+        return;
+      }
+
+      state.achievements.add(
+        label
+      );
+
+      showToast(
+        `배지 획득 · ${label}`,
+        "good"
+      );
+    }
+
+    function showToast(
+      message,
+      type = ""
+    ) {
+      const toast =
+        document.createElement(
+          "div"
+        );
+
+      toast.className =
+        `toast ${type}`;
+
+      toast.textContent =
+        message;
+
+      $("toastStack").appendChild(
+        toast
+      );
+
+      setTimeout(
+        () => toast.remove(),
+        2350
+      );
+    }
+
+    function popScore(
+      text,
+      anchor,
+      type = ""
+    ) {
+      const target =
+        anchor ||
+        $("app");
+
+      const rect =
+        target.getBoundingClientRect();
+
+      const pop =
+        document.createElement(
+          "div"
+        );
+
+      pop.className =
+        `score-pop ${type}`;
+
+      pop.textContent =
+        text;
+
+      pop.style.left =
+        `${
+          rect.left +
+          rect.width / 2
+        }px`;
+
+      pop.style.top =
+        `${
+          rect.top +
+          rect.height / 2
+        }px`;
+
+      document.body.appendChild(
+        pop
+      );
+
+      setTimeout(
+        () => pop.remove(),
+        950
+      );
+    }
+
+    function flash(type) {
+      const element =
+        $("screenFlash");
+
+      element.className =
+        "screen-flash";
+
+      void element.offsetWidth;
+
+      element.classList.add(
+        type
+      );
+    }
+
+    function impact() {
+      const app =
+        $("app");
+
+      app.classList.remove(
+        "impact"
+      );
+
+      void app.offsetWidth;
+
+      app.classList.add(
+        "impact"
+      );
+
+      setTimeout(
+        () => {
+          app.classList.remove(
+            "impact"
+          );
+        },
+        420
+      );
+    }
+
+    function formatTime(
+      seconds
+    ) {
+      const total =
+        Math.max(
+          0,
+          Math.ceil(seconds)
+        );
+
+      const minutes =
+        Math.floor(
+          total / 60
+        );
+
+      const remaining =
+        total % 60;
+
+      return (
+        String(minutes).padStart(
+          2,
+          "0"
+        ) +
+        ":" +
+        String(remaining).padStart(
+          2,
+          "0"
+        )
+      );
+    }
+
+    /* 효과음 */
+
+    function ensureAudio() {
+      if (!audioContext) {
+        const AudioContextClass =
+          window.AudioContext ||
+          window.webkitAudioContext;
+
+        if (AudioContextClass) {
+          audioContext =
+            new AudioContextClass();
+        }
+      }
+
+      if (
+        audioContext?.state ===
+        "suspended"
+      ) {
+        audioContext.resume();
+      }
+    }
+
+    function tone(
+      frequency,
+      duration,
+      type = "sine",
+      gain = 0.035,
+      delay = 0
+    ) {
+      if (!soundEnabled) {
+        return;
+      }
+
+      ensureAudio();
+
+      if (!audioContext) {
+        return;
+      }
+
+      const oscillator =
+        audioContext.createOscillator();
+
+      const volume =
+        audioContext.createGain();
+
+      const start =
+        audioContext.currentTime +
+        delay;
+
+      oscillator.type =
+        type;
+
+      oscillator.frequency.setValueAtTime(
+        frequency,
+        start
+      );
+
+      volume.gain.setValueAtTime(
+        0.0001,
+        start
+      );
+
+      volume.gain.exponentialRampToValueAtTime(
+        gain,
+        start + 0.015
+      );
+
+      volume.gain.exponentialRampToValueAtTime(
+        0.0001,
+        start + duration
+      );
+
+      oscillator.connect(
+        volume
+      );
+
+      volume.connect(
+        audioContext.destination
+      );
+
+      oscillator.start(
+        start
+      );
+
+      oscillator.stop(
+        start +
+        duration +
+        0.03
+      );
+    }
+
+    function playSound(kind) {
+      if (!soundEnabled) {
+        return;
+      }
+
+      const sounds = {
+        start: () => {
+          tone(
+            420,
+            0.12
+          );
+
+          tone(
+            620,
+            0.18,
+            "sine",
+            0.035,
+            0.1
+          );
+        },
+
+        event: () => {
+          tone(
+            310,
+            0.12,
+            "triangle",
+            0.03
+          );
+        },
+
+        bossWarning: () => {
+          tone(
+            180,
+            0.25,
+            "sawtooth",
+            0.025
+          );
+
+          tone(
+            150,
+            0.28,
+            "sawtooth",
+            0.025,
+            0.22
+          );
+        },
+
+        bossStart: () => {
+          tone(
+            130,
+            0.35,
+            "sawtooth",
+            0.035
+          );
+
+          tone(
+            90,
+            0.42,
+            "square",
+            0.02,
+            0.18
+          );
+        },
+
+        bossClear: () => {
+          tone(
+            440,
+            0.12
+          );
+
+          tone(
+            660,
+            0.12,
+            "sine",
+            0.04,
+            0.1
+          );
+
+          tone(
+            880,
+            0.2,
+            "sine",
+            0.04,
+            0.2
+          );
+        },
+
+        good: () => {
+          tone(
+            600,
+            0.12,
+            "sine",
+            0.03
+          );
+        },
+
+        perfect: () => {
+          tone(
+            520,
+            0.1
+          );
+
+          tone(
+            760,
+            0.12,
+            "sine",
+            0.04,
+            0.08
+          );
+
+          tone(
+            980,
+            0.16,
+            "sine",
+            0.035,
+            0.17
+          );
+        },
+
+        warn: () => {
+          tone(
+            280,
+            0.16,
+            "triangle",
+            0.03
+          );
+        },
+
+        bad: () => {
+          tone(
+            160,
+            0.2,
+            "square",
+            0.025
+          );
+        },
+
+        shutdown: () => {
+          tone(
+            130,
+            0.35,
+            "sawtooth",
+            0.035
+          );
+
+          tone(
+            90,
+            0.45,
+            "square",
+            0.03,
+            0.18
+          );
+        },
+
+        recover: () => {
+          tone(
+            420,
+            0.1
+          );
+
+          tone(
+            560,
+            0.14,
+            "sine",
+            0.03,
+            0.08
+          );
+        },
+
+        boost: () => {
+          tone(
+            380,
+            0.1
+          );
+
+          tone(
+            600,
+            0.15,
+            "sine",
+            0.04,
+            0.08
+          );
+
+          tone(
+            900,
+            0.25,
+            "sine",
+            0.035,
+            0.18
+          );
+        },
+
+        mission: () => {
+          tone(
+            500,
+            0.1
+          );
+
+          tone(
+            700,
+            0.14,
+            "sine",
+            0.035,
+            0.09
+          );
+        },
+
+        win: () => {
+          tone(
+            440,
+            0.12
+          );
+
+          tone(
+            554,
+            0.12,
+            "sine",
+            0.04,
+            0.11
+          );
+
+          tone(
+            659,
+            0.12,
+            "sine",
+            0.04,
+            0.22
+          );
+
+          tone(
+            880,
+            0.3,
+            "sine",
+            0.04,
+            0.33
+          );
+        },
+
+        lose: () => {
+          tone(
+            220,
+            0.25,
+            "triangle",
+            0.03
+          );
+
+          tone(
+            165,
+            0.35,
+            "triangle",
+            0.03,
+            0.2
+          );
+        }
+      };
+
+      sounds[kind]?.();
+    }
+
+    /* 버튼 연결 */
 
     document
       .querySelectorAll(
@@ -3070,7 +6455,8 @@
             "click",
             () => {
               useAction(
-                button.dataset.action
+                button.dataset.action,
+                button
               );
             }
           );
@@ -3079,12 +6465,12 @@
 
     $("startButton").addEventListener(
       "click",
-      closeGuideOrStart
+      startGame
     );
 
-    $("guideButton").addEventListener(
+    $("restartButton").addEventListener(
       "click",
-      openGuide
+      startGame
     );
 
     $("pauseButton").addEventListener(
@@ -3092,30 +6478,39 @@
       togglePause
     );
 
-    $("recoveryButton").addEventListener(
+    $("helpButton").addEventListener(
       "click",
-      recover
+      openHelp
     );
 
-    $("restartButton").addEventListener(
+    $("closeHelpButton").addEventListener(
+      "click",
+      closeHelp
+    );
+
+    $("boostButton").addEventListener(
+      "click",
+      activateBoost
+    );
+
+    $("soundButton").addEventListener(
       "click",
       () => {
-        $("resultOverlay").classList.add(
-          "hidden"
-        );
+        soundEnabled =
+          !soundEnabled;
 
-        $("startButton").textContent =
-          "관제 시작";
+        $("soundButton").textContent =
+          soundEnabled
+            ? "🔊 소리"
+            : "🔇 소리";
 
-        $("introOverlay").classList.remove(
-          "hidden"
-        );
-
-        state = freshState();
-
-        render();
+        if (soundEnabled) {
+          playSound("good");
+        }
       }
     );
+
+    /* 키보드 단축키 */
 
     document.addEventListener(
       "keydown",
@@ -3125,12 +6520,45 @@
         ) {
           event.preventDefault();
           togglePause();
+          return;
+        }
+
+        if (
+          event.key.toLowerCase() ===
+          "b"
+        ) {
+          activateBoost();
+          return;
+        }
+
+        const keyMap = {
+          "1": "insulin",
+          "2": "glucagon",
+          "3": "sympathetic",
+          "4": "thyroxine",
+          "5": "sweat",
+          "6": "adh",
+          "7": "water"
+        };
+
+        const actionKey =
+          keyMap[event.key];
+
+        if (actionKey) {
+          const button =
+            document.querySelector(
+              `[data-action="${actionKey}"]`
+            );
+
+          useAction(
+            actionKey,
+            button
+          );
         }
       }
     );
 
     state = freshState();
-
     render();
   </script>
 </body>
