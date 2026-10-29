@@ -1,1485 +1,477 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Setpoint : Homeostasis Command</title>
-  <style>
-    :root{
-      --bg:#0f1316;
-      --panel:#171c21;
-      --panel2:#1f262c;
-      --line:#334049;
-      --text:#eef7f4;
-      --muted:#aeb9b5;
-      --mint:#2de5bb;
-      --mint-soft:rgba(45,229,187,.10);
-      --yellow:#ffd166;
-      --red:#ff6b6b;
-      --blue:#77bbff;
-      --purple:#b48cff;
-      --shadow:0 16px 34px rgba(0,0,0,.28);
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: Pretendard,"Noto Sans KR",system-ui,sans-serif;
-      background:
-        radial-gradient(circle at 50% -10%, rgba(45,229,187,.14), transparent 38rem),
-        var(--bg);
-      color:var(--text);
-    }
-    button{font:inherit}
-    .hidden{display:none!important}
-    .app{width:min(1180px,calc(100% - 16px));margin:0 auto;padding:14px 0 26px}
-    .panel{
-      background:var(--panel);
-      border:1px solid var(--line);
-      border-radius:18px;
-      box-shadow:var(--shadow);
-    }
-    .topbar{
-      display:flex;justify-content:space-between;align-items:center;gap:10px;
-      margin-bottom:10px
-    }
-    .brand{display:flex;align-items:center;gap:10px}
-    .logo{
-      width:44px;height:44px;border-radius:13px;display:grid;place-items:center;
-      font-weight:900;background:var(--mint);color:#052217
-    }
-    .brand h1{margin:0;font-size:1.25rem}
-    .brand p{margin:4px 0 0;color:var(--muted);font-size:.75rem}
-    .top-actions{display:flex;gap:6px;flex-wrap:wrap}
-    .small-btn,.chip-btn,.action-btn,.mini-chip,.mini-tile,.main-btn{
-      transition:.15s ease transform,.15s ease opacity,.15s ease background,.15s ease border-color;
-    }
-    .small-btn:hover,.chip-btn:hover,.action-btn:hover,.mini-chip:hover,.mini-tile:hover,.main-btn:hover{
-      transform:translateY(-1px)
-    }
-    .small-btn,.chip-btn{
-      background:var(--panel2);
-      color:var(--text);
-      border:1px solid var(--line);
-      border-radius:11px;
-      min-height:40px;
-      padding:9px 12px;
-      cursor:pointer
-    }
-    .main-btn{
-      background:var(--mint);
-      color:#082219;
-      border:1px solid transparent;
-      border-radius:13px;
-      font-weight:900;
-      min-height:48px;
-      padding:11px 14px;
-      cursor:pointer
-    }
-    button:disabled{opacity:.45;cursor:not-allowed;transform:none}
-    .hud{
-      display:grid;
-      grid-template-columns:repeat(6,1fr);
-      gap:8px;
-      margin-bottom:10px;
-    }
-    .hud-card{
-      padding:10px 12px;
-      border-radius:14px;
-      background:var(--panel);
-      border:1px solid var(--line);
-    }
-    .hud-card span{display:block;color:var(--muted);font-size:.64rem;margin-bottom:4px;font-weight:700}
-    .hud-card strong{font-size:1rem}
-    .good{color:var(--mint)!important}
-    .warn{color:var(--yellow)!important}
-    .bad{color:var(--red)!important}
-
-    .main-grid{
-      display:grid;
-      grid-template-columns:minmax(330px,.95fr) minmax(420px,1.1fr);
-      gap:10px;
-      margin-bottom:10px;
-    }
-
-    .body-panel,.control-panel{padding:14px}
-    .section-top{
-      display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px
-    }
-    .section-top h2{margin:0;font-size:1rem}
-    .section-top p{margin:4px 0 0;color:var(--muted);font-size:.72rem}
-    .tag{
-      padding:6px 10px;border-radius:999px;
-      background:var(--mint-soft);color:var(--mint);
-      font-size:.64rem;font-weight:900;white-space:nowrap
-    }
-
-    .body-area{
-      position:relative;
-      min-height:620px;
-      background:
-        radial-gradient(circle at 50% 12%, rgba(45,229,187,.08), transparent 56%),
-        var(--panel2);
-      border:1px solid var(--line);
-      border-radius:18px;
-      overflow:hidden;
-    }
-    .body-svg{
-      display:block;
-      width:min(100%,410px);
-      margin:8px auto 0;
-      height:auto;
-    }
-    .callout{
-      position:absolute;background:rgba(255,255,255,.18);pointer-events:none
-    }
-    .hotspot{
-      position:absolute;
-      display:flex;align-items:center;gap:8px;
-      min-width:106px;
-      padding:8px 10px;
-      border-radius:12px;
-      border:1px solid var(--line);
-      background:rgba(20,24,28,.92);
-      cursor:pointer;
-      box-shadow:var(--shadow);
-      user-select:none;
-    }
-    .hotspot:hover{border-color:rgba(45,229,187,.45)}
-    .hotspot.selected{border-color:var(--mint);box-shadow:0 0 0 2px rgba(45,229,187,.14),var(--shadow)}
-    .hotspot.urgent{animation:pulse 1s infinite}
-    @keyframes pulse{
-      0%,100%{box-shadow:0 0 0 0 rgba(255,209,102,.25),var(--shadow)}
-      50%{box-shadow:0 0 0 10px rgba(255,209,102,0),var(--shadow)}
-    }
-    .dot{
-      width:14px;height:14px;border-radius:999px;flex:0 0 auto;
-      background:var(--mint);box-shadow:0 0 0 5px rgba(45,229,187,.14)
-    }
-    .hotspot[data-system="glucose"] .dot{background:#ff8d8d;box-shadow:0 0 0 5px rgba(255,107,107,.14)}
-    .hotspot[data-system="temp"] .dot{background:#ffd166;box-shadow:0 0 0 5px rgba(255,209,102,.14)}
-    .hotspot[data-system="osm"] .dot{background:#77bbff;box-shadow:0 0 0 5px rgba(119,187,255,.14)}
-    .hotspot strong{display:block;font-size:.74rem;line-height:1.2}
-    .hotspot span{display:block;color:var(--muted);font-size:.62rem;margin-top:1px}
-
-    .stat-badge{
-      position:absolute;
-      min-width:126px;
-      padding:9px 10px;
-      border-radius:13px;
-      border:1px solid var(--line);
-      background:rgba(20,24,28,.9);
-      box-shadow:var(--shadow)
-    }
-    .stat-badge span{display:block;color:var(--muted);font-size:.6rem;margin-bottom:3px}
-    .stat-badge strong{font-size:.94rem}
-    .stat-badge .trend{float:right;color:var(--mint);font-weight:900}
-    .stat-badge.warning{border-color:rgba(255,209,102,.55)}
-    .stat-badge.danger{border-color:rgba(255,107,107,.75)}
-
-    .body-note{
-      margin-top:10px;padding:10px 12px;border-radius:12px;
-      background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
-      color:var(--muted);font-size:.69rem;line-height:1.46
-    }
-
-    .event-card{
-      min-height:112px;
-      padding:14px;
-      border-radius:16px;
-      border:1px solid var(--line);
-      background:var(--panel2);
-      margin-bottom:10px;
-    }
-    .event-card.boss{
-      border-color:rgba(180,140,255,.45);
-      background:linear-gradient(90deg, rgba(180,140,255,.08), transparent 60%),var(--panel2)
-    }
-    .event-type{display:inline-block;font-size:.62rem;font-weight:900;letter-spacing:.12em;color:var(--mint);margin-bottom:6px}
-    .event-card.boss .event-type{color:var(--purple)}
-    .event-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
-    .event-left{display:flex;align-items:center;gap:12px;min-width:0}
-    .event-icon{
-      width:50px;height:50px;border-radius:16px;background:var(--panel);
-      border:1px solid var(--line);display:grid;place-items:center;font-size:1.6rem;flex:0 0 auto
-    }
-    .event-copy h3{margin:0 0 3px;font-size:.95rem}
-    .event-copy p{margin:0;color:var(--muted);font-size:.72rem;line-height:1.46}
-    .event-time{text-align:right;min-width:70px}
-    .event-time strong{display:block;font-size:1.06rem}
-    .event-time span{display:block;color:var(--muted);font-size:.62rem}
-    .event-hint{
-      margin-top:10px;padding:8px 10px;border-radius:11px;
-      background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
-      color:var(--muted);font-size:.68rem
-    }
-
-    .control-grid{
-      display:grid;
-      grid-template-columns:minmax(240px,.96fr) minmax(250px,.94fr);
-      gap:10px;
-    }
-    .subpanel{
-      background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:13px
-    }
-    .subpanel h4{margin:0 0 8px;font-size:.92rem}
-    .meta{margin:-2px 0 10px;color:var(--muted);font-size:.67rem;line-height:1.46}
-    .overview{
-      margin-bottom:10px;padding:10px 11px;border-radius:12px;
-      background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
-      color:var(--muted);font-size:.68rem;line-height:1.5
-    }
-    .organ-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-    .organ-tags span{
-      padding:5px 8px;border-radius:999px;background:rgba(45,229,187,.08);
-      color:var(--mint);font-size:.62rem;font-weight:700
-    }
-    .ready-pill{
-      display:inline-flex;align-items:center;gap:6px;
-      padding:6px 9px;border-radius:999px;
-      background:rgba(255,209,102,.08);border:1px solid rgba(255,209,102,.18);
-      color:var(--yellow);font-size:.63rem;font-weight:900;margin-bottom:10px
-    }
-    .ready-pill.ready{
-      background:rgba(45,229,187,.08);border-color:rgba(45,229,187,.18);color:var(--mint)
-    }
-    .actions{display:grid;gap:8px}
-    .action-btn{
-      min-height:76px;padding:12px;border-radius:14px;border:1px solid var(--line);
-      background:#2a3137;color:var(--text);text-align:left;cursor:pointer;position:relative
-    }
-    .action-btn:hover{border-color:rgba(45,229,187,.45)}
-    .action-btn strong{display:block;font-size:.86rem;margin-bottom:4px}
-    .action-btn span{display:block;font-size:.68rem;color:var(--mint)}
-    .action-btn em{display:block;font-style:normal;color:var(--muted);font-size:.62rem;margin-top:5px;line-height:1.4}
-    .keyhint{position:absolute;top:8px;right:9px;color:var(--muted);font-size:.58rem;font-weight:900}
-
-    .mini-wrap{display:grid;gap:10px}
-    .mini-header{
-      display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap
-    }
-    .mini-header strong{font-size:.84rem}
-    .mini-header span{color:var(--muted);font-size:.66rem}
-    .mini-status{
-      padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.03);
-      border:1px solid rgba(255,255,255,.06);font-size:.66rem;color:var(--muted)
-    }
-    .mini-status.good{
-      color:var(--mint);border-color:rgba(45,229,187,.18);background:rgba(45,229,187,.05)
-    }
-    .number-target{
-      display:flex;align-items:center;gap:8px;flex-wrap:wrap;
-      padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.03);
-      border:1px solid rgba(255,255,255,.06);font-size:.71rem
-    }
-    .target-badge{
-      padding:5px 10px;border-radius:999px;background:#2a3137;border:1px solid var(--line);
-      color:var(--yellow);font-weight:900
-    }
-    .chips{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-    .mini-chip{
-      min-height:54px;border-radius:13px;border:1px solid var(--line);background:#2a3137;
-      color:var(--text);font-size:1rem;font-weight:900;cursor:pointer
-    }
-    .mini-chip.active{
-      border-color:var(--mint);background:rgba(45,229,187,.08);color:var(--mint)
-    }
-
-    .pipe-row{
-      display:grid;grid-template-columns:40px repeat(4,1fr) 40px;gap:8px;align-items:center
-    }
-    .pipe-end{
-      height:52px;border-radius:12px;display:grid;place-items:center;
-      background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);font-size:1.1rem
-    }
-    .mini-tile{
-      height:52px;border-radius:12px;border:1px solid var(--line);background:#2a3137;
-      cursor:pointer;position:relative
-    }
-    .mini-tile::before,.mini-tile::after{
-      content:"";position:absolute;background:var(--yellow);border-radius:999px;
-      left:50%;top:50%;transform:translate(-50%,-50%)
-    }
-    .curve-0::before{width:34px;height:8px;transform:translate(-35%,-50%)}
-    .curve-0::after{width:8px;height:34px;transform:translate(-50%,-35%)}
-    .curve-1::before{width:34px;height:8px;transform:translate(-35%,-50%)}
-    .curve-1::after{width:8px;height:34px;transform:translate(-50%,35%)}
-    .curve-2::before{width:34px;height:8px;transform:translate(35%,-50%)}
-    .curve-2::after{width:8px;height:34px;transform:translate(-50%,35%)}
-    .curve-3::before{width:34px;height:8px;transform:translate(35%,-50%)}
-    .curve-3::after{width:8px;height:34px;transform:translate(-50%,-35%)}
-    .mini-tile.on::before,.mini-tile.on::after{
-      background:var(--mint);box-shadow:0 0 10px rgba(45,229,187,.28)
-    }
-
-    .bottom-row{
-      display:grid;grid-template-columns:minmax(150px,.95fr) minmax(150px,.95fr) minmax(160px,1fr);
-      gap:10px;align-items:center;margin-bottom:10px
-    }
-    .meter-card{
-      padding:12px 14px;border-radius:16px;background:var(--panel);border:1px solid var(--line)
-    }
-    .meter-top{display:flex;justify-content:space-between;gap:8px;margin-bottom:6px;font-size:.68rem;color:var(--muted)}
-    .meter{
-      height:8px;border-radius:999px;background:#2a3137;overflow:hidden
-    }
-    .meter>div{height:100%;width:0;background:var(--mint);transition:.18s linear width}
-    .boost-box{
-      padding:12px 14px;border-radius:16px;background:var(--panel);border:1px solid var(--line)
-    }
-    .boost-box strong{display:block;font-size:.84rem}
-    .boost-box span{display:block;color:var(--muted);font-size:.66rem;margin-top:4px}
-    .message{
-      padding:11px 13px;border-radius:13px;border:1px solid var(--line);
-      background:rgba(255,255,255,.03);font-size:.74rem;color:var(--muted);line-height:1.5
-    }
-    .message.good{color:var(--mint);border-color:rgba(45,229,187,.16)}
-    .message.warn{color:var(--yellow);border-color:rgba(255,209,102,.18)}
-    .message.bad{color:var(--red);border-color:rgba(255,107,107,.2)}
-
-    .overlay{
-      position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:16px;
-      background:rgba(7,10,12,.88);backdrop-filter:blur(8px)
-    }
-    .modal{
-      width:min(900px,100%);
-      max-height:calc(100vh - 32px);
-      overflow:auto;
-      background:var(--panel);
-      border:1px solid var(--line);
-      border-radius:24px;
-      box-shadow:0 28px 70px rgba(0,0,0,.45);
-      padding:clamp(22px,4vw,34px)
-    }
-    .intro-grid{display:grid;grid-template-columns:.92fr 1.08fr;gap:24px;align-items:center}
-    .intro-visual{
-      min-height:320px;border-radius:20px;border:1px solid var(--line);
-      background:
-        radial-gradient(circle at center, rgba(45,229,187,.12), transparent 60%),
-        var(--panel2);
-      display:grid;place-items:center
-    }
-    .intro-visual svg{width:min(320px,92%);height:auto}
-    .kicker{color:var(--mint);font-size:.7rem;font-weight:900;letter-spacing:.14em}
-    .modal h2{margin:8px 0 10px;font-size:clamp(1.85rem,5vw,2.45rem);line-height:1.15}
-    .lead{margin:0 0 16px;color:var(--muted);font-size:.86rem;line-height:1.65}
-    .features{display:grid;gap:8px;margin-bottom:16px}
-    .feature{
-      display:grid;grid-template-columns:32px 1fr;gap:10px;
-      padding:10px;border-radius:12px;background:var(--panel2);border:1px solid var(--line)
-    }
-    .feature .icon{
-      width:30px;height:30px;border-radius:9px;display:grid;place-items:center;
-      background:var(--mint-soft);color:var(--mint);font-size:.92rem
-    }
-    .feature strong{display:block;font-size:.78rem;margin-bottom:3px}
-    .feature span{display:block;color:var(--muted);font-size:.68rem;line-height:1.45}
-
-    .result-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0 14px}
-    .result-card{
-      padding:11px 9px;border-radius:12px;background:var(--panel2);
-      border:1px solid var(--line);text-align:center
-    }
-    .result-card span{display:block;color:var(--muted);font-size:.62rem}
-    .result-card strong{display:block;margin-top:4px;font-size:1rem}
-    .lesson{
-      padding:12px;border-radius:13px;background:rgba(45,229,187,.05);
-      border:1px solid rgba(45,229,187,.12);color:var(--muted);font-size:.72rem;line-height:1.55;margin-bottom:14px
-    }
-
-    .lock-banner{
-      position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
-      z-index:120;padding:11px 16px;border-radius:999px;background:var(--red);
-      color:#240909;font-weight:900;font-size:.74rem;box-shadow:var(--shadow)
-    }
-
-    @media (max-width:1020px){
-      .hud{grid-template-columns:repeat(3,1fr)}
-      .main-grid{grid-template-columns:1fr}
-      .control-grid{grid-template-columns:1fr}
-      .bottom-row{grid-template-columns:1fr 1fr}
-      .bottom-row .main-btn{grid-column:1/-1}
-    }
-    @media (max-width:760px){
-      .hud{grid-template-columns:repeat(2,1fr)}
-      .intro-grid{grid-template-columns:1fr}
-      .body-area{min-height:630px}
-      .result-grid{grid-template-columns:repeat(2,1fr)}
-      .chips{grid-template-columns:repeat(3,1fr)}
-    }
-    @media (max-width:520px){
-      .chips{grid-template-columns:repeat(2,1fr)}
-      .pipe-row{grid-template-columns:34px repeat(4,1fr) 34px;gap:6px}
-      .mini-tile,.pipe-end{height:46px}
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Setpoint - 항상성 게임</title>
+<style>
+:root {
+  --bg:#101416;
+  --panel:#1c2427;
+  --line:#344247;
+  --mint:#32e2b4;
+  --text:#f0f7f5;
+  --muted:#a8b9b5;
+  --yellow:#ffd166;
+  --red:#ff7474;
+}
+* {box-sizing:border-box}
+body {
+  margin:0;
+  background:radial-gradient(circle at top,#1c3531,#101416 60%);
+  color:var(--text);
+  font-family:system-ui,"Noto Sans KR",sans-serif;
+}
+button {font:inherit;cursor:pointer}
+button:disabled {opacity:.45;cursor:not-allowed}
+.wrap {max-width:1050px;margin:auto;padding:16px 12px 40px}
+.top {
+  display:flex;align-items:center;
+  justify-content:space-between;margin-bottom:12px;
+}
+.logo {font-size:27px;font-weight:900}
+.logo span {color:var(--mint)}
+.small {
+  background:#293438;color:white;
+  border:1px solid var(--line);
+  padding:9px 13px;border-radius:10px;
+}
+.hud {
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:9px;margin-bottom:10px;
+}
+.hud>div,.panel {
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:17px;
+}
+.hud>div {padding:12px}
+.hud small {
+  display:block;color:var(--muted);
+  font-size:12px;
+}
+.hud strong {font-size:21px}
+.layout {
+  display:grid;
+  grid-template-columns:350px 1fr;
+  gap:10px;
+}
+.body-panel,.status,.controls {padding:16px}
+h2 {font-size:17px;margin:0 0 10px}
+.hint {font-size:12px;color:var(--muted)}
+.body-svg {width:100%;height:330px}
+.organ {transition:fill .2s,filter .2s}
+.organ.hot {
+  fill:var(--yellow)!important;
+  filter:drop-shadow(0 0 9px var(--yellow));
+}
+.legend {
+  display:flex;justify-content:center;
+  gap:10px;font-size:12px;color:var(--muted);
+}
+.event {
+  padding:15px;background:#293438;
+  border-radius:13px;margin-bottom:12px;
+}
+.event h2 {font-size:20px;margin:5px 0}
+.event p {color:var(--muted);font-size:13px;margin:0}
+.command {
+  background:rgba(50,226,180,.09);
+  border:1px solid rgba(50,226,180,.4);
+  padding:15px;border-radius:13px;margin-bottom:15px;
+}
+.command small {color:var(--mint);font-weight:800}
+.command strong {
+  display:block;font-size:21px;margin:7px 0;
+}
+.command p {font-size:12px;color:var(--muted);margin:0}
+.stat {margin-bottom:15px}
+.stathead {
+  display:flex;justify-content:space-between;
+  margin-bottom:7px;font-size:13px;
+}
+.stathead strong {font-size:17px}
+.track {
+  height:12px;background:#3b4549;
+  border-radius:20px;position:relative;overflow:hidden;
+}
+.zone {
+  position:absolute;top:0;height:100%;
+  background:rgba(50,226,180,.4);
+}
+.marker {
+  position:absolute;top:0;width:5px;height:100%;
+  background:white;border-radius:5px;
+}
+.controls {margin-top:10px}
+.control-grid {
+  display:grid;
+  grid-template-columns:repeat(7,minmax(0,1fr));
+  gap:8px;
+}
+.action {
+  position:relative;min-height:105px;
+  background:#2b3539;color:white;
+  border:1px solid var(--line);
+  border-radius:13px;padding:12px 5px;
+  transition:background .15s,border-color .15s,
+    box-shadow .15s,transform .15s;
+}
+.action strong {display:block;font-size:13px}
+.action .effect {
+  display:block;color:var(--mint);
+  font-size:12px;margin-top:7px;
+}
+.action .detail {
+  display:block;color:var(--muted);
+  font-size:10px;margin-top:6px;
+}
+.action.recommended {
+  background:#25483e;
+  border:2px solid var(--mint);
+}
+.action.recommended::before {
+  content:"추천";position:absolute;top:-10px;right:4px;
+  background:var(--mint);color:#07231b;
+  font-size:10px;font-weight:900;
+  padding:2px 7px;border-radius:8px;
+}
+.action.active,.action.pressed {
+  background:#14775f!important;
+  border-color:#8dffdc!important;
+  box-shadow:0 0 0 2px rgba(50,226,180,.25),
+    0 0 22px rgba(50,226,180,.22);
+}
+.action.pressed {transform:scale(.95)}
+.action.active .effect {color:white}
+.footer {
+  display:grid;grid-template-columns:1fr 1fr auto;
+  gap:12px;align-items:center;
+  padding:14px;margin-top:10px;
+}
+.meter-label {
+  display:flex;justify-content:space-between;
+  font-size:12px;margin-bottom:7px;
+}
+.meter {
+  height:9px;background:#394549;
+  border-radius:20px;overflow:hidden;
+}
+.meter>div {
+  height:100%;background:var(--mint);
+  transition:width .2s;
+}
+.boost {
+  background:#293438;color:white;
+  border:1px solid var(--line);
+  padding:12px;border-radius:11px;
+}
+.boost.ready {
+  background:var(--mint);
+  color:#062219;font-weight:900;
+}
+.message {
+  font-size:13px;color:var(--muted);
+  margin:12px 4px;
+}
+.mini {
+  margin-top:12px;padding:12px;
+  background:#293438;border-radius:12px;
+}
+.mini p {font-size:12px;color:var(--muted)}
+.mini button {
+  background:#435357;color:white;
+  border:1px solid #617276;
+  border-radius:9px;padding:10px 15px;margin:3px;
+}
+.mini button.chosen {
+  background:var(--mint);color:#062219;
+}
+.hidden {display:none!important}
+.overlay {
+  position:fixed;inset:0;z-index:30;
+  display:grid;place-items:center;
+  padding:16px;background:rgba(5,9,10,.9);
+}
+.modal {
+  width:min(540px,100%);
+  padding:28px;background:#1d272a;
+  border:1px solid var(--line);
+  border-radius:22px;
+}
+.modal h1 {margin:0 0 12px}
+.modal p {color:var(--muted);line-height:1.7}
+.steps {
+  background:#293438;padding:16px;
+  border-radius:12px;line-height:2;
+  font-size:14px;
+}
+.primary {
+  width:100%;background:var(--mint);
+  color:#082219;border:0;border-radius:12px;
+  padding:14px;font-weight:900;margin-top:16px;
+}
+@media(max-width:850px) {
+  .layout {grid-template-columns:1fr}
+  .body-svg {height:250px}
+  .control-grid {grid-template-columns:repeat(4,1fr)}
+}
+@media(max-width:480px) {
+  .hud {grid-template-columns:repeat(2,1fr)}
+  .control-grid {grid-template-columns:repeat(2,1fr)}
+  .footer {grid-template-columns:1fr 1fr}
+  .boost {grid-column:1/-1}
+  .action {min-height:80px}
+}
+</style>
 </head>
 <body>
 
-  <main class="app">
-    <header class="topbar">
-      <div class="brand">
-        <div class="logo">SP</div>
-        <div>
-          <h1>Setpoint</h1>
-          <p>인체 항상성 관제 게임 · 몸의 부위를 눌러 조절하세요</p>
-        </div>
-      </div>
-      <div class="top-actions">
-        <button class="small-btn" id="helpBtn">설명</button>
-        <button class="small-btn" id="pauseBtn" disabled>일시정지</button>
-      </div>
-    </header>
+<div class="wrap">
 
-    <section class="hud">
-      <div class="hud-card"><span>남은 시간</span><strong id="timeVal">01:30</strong></div>
-      <div class="hud-card"><span>점수</span><strong id="scoreVal">0</strong></div>
-      <div class="hud-card"><span>콤보 배수</span><strong id="comboVal" class="good">×1.0</strong></div>
-      <div class="hud-card"><span>안정도</span><strong id="stabilityVal" class="good">100%</strong></div>
-      <div class="hud-card"><span>피드백 부하</span><strong id="feedbackVal" class="warn">0%</strong></div>
-      <div class="hud-card"><span>단계</span><strong id="stageVal">CALM</strong></div>
-    </section>
+<header class="top">
+  <div class="logo"><span>SET</span>POINT</div>
+  <div>
+    <button class="small" id="help">설명</button>
+    <button class="small" id="pause">일시정지</button>
+  </div>
+</header>
 
-    <section class="main-grid">
-      <section class="panel body-panel">
-        <div class="section-top">
-          <div>
-            <h2>인체 관제도</h2>
-            <p>몸의 부위를 눌러 조절 시스템을 선택하세요</p>
-          </div>
-          <div class="tag" id="selectedTag">선택: 체온 조절</div>
-        </div>
+<div class="hud">
+  <div><small>남은 시간</small><strong id="time">90초</strong></div>
+  <div><small>점수</small><strong id="score">0</strong></div>
+  <div><small>연속 성공</small><strong id="combo">0</strong></div>
+  <div><small>안정도</small><strong id="stability">100%</strong></div>
+</div>
 
-        <div class="body-area">
-          <svg class="body-svg" viewBox="0 0 420 620" fill="none">
-            <defs>
-              <radialGradient id="g" cx="50%" cy="35%" r="60%">
-                <stop offset="0%" stop-color="rgba(45,229,187,.18)"/>
-                <stop offset="100%" stop-color="rgba(45,229,187,0)"/>
-              </radialGradient>
-            </defs>
-            <ellipse cx="210" cy="285" rx="160" ry="255" fill="url(#g)"/>
-            <circle cx="210" cy="80" r="50" stroke="#dde7e5" stroke-width="5"/>
-            <path d="M210 130V280" stroke="#dde7e5" stroke-width="7" stroke-linecap="round"/>
-            <path d="M210 170L125 225" stroke="#dde7e5" stroke-width="7" stroke-linecap="round"/>
-            <path d="M210 170L295 225" stroke="#dde7e5" stroke-width="7" stroke-linecap="round"/>
-            <path d="M125 225L95 360" stroke="#dde7e5" stroke-width="7" stroke-linecap="round"/>
-            <path d="M295 225L325 360" stroke="#dde7e5" stroke-width="7" stroke-linecap="round"/>
-            <path d="M210 280L158 430" stroke="#dde7e5" stroke-width="7" stroke-linecap="round"/>
-            <path d="M210 280L262 430" stroke="#dde7e5" stroke-width="7" stroke-linecap="round"/>
-            <path d="M158 430L148 560" stroke="#dde7e5" stroke-width="7" stroke-linecap="round"/>
-            <path d="M262 430L272 560" stroke="#dde7e5" stroke-width="7" stroke-linecap="round"/>
-            <ellipse cx="210" cy="188" rx="17" ry="11" fill="#2de5bb" opacity=".88"/>
-            <ellipse cx="190" cy="247" rx="35" ry="22" fill="#ff6b6b" opacity=".82"/>
-            <ellipse cx="230" cy="232" rx="42" ry="25" fill="#ffa17e" opacity=".56"/>
-            <ellipse cx="186" cy="268" rx="14" ry="22" fill="#77bbff" opacity=".62"/>
-            <ellipse cx="234" cy="268" rx="14" ry="22" fill="#77bbff" opacity=".62"/>
-          </svg>
+<div class="layout">
 
-          <div class="callout" style="left:205px;top:81px;width:70px;height:2px"></div>
-          <div class="callout" style="left:170px;top:186px;width:2px;height:58px"></div>
-          <div class="callout" style="left:237px;top:245px;width:77px;height:2px"></div>
-          <div class="callout" style="left:165px;top:267px;width:2px;height:43px"></div>
-          <div class="callout" style="left:237px;top:269px;width:2px;height:43px"></div>
+<section class="panel body-panel">
+  <h2>인체 관제도</h2>
+  <p class="hint">문제가 생긴 기관이 자동으로 빛납니다.</p>
 
-          <div class="hotspot selected" data-system="temp" style="left:280px;top:60px">
-            <div class="dot"></div>
-            <div><strong>시상하부</strong><span>체온 총괄</span></div>
-          </div>
+  <svg class="body-svg" viewBox="0 0 300 370">
+    <circle cx="150" cy="48" r="37" fill="#d3e5e0"/>
+    <path d="M112 91 Q150 81 188 91
+             L213 190 L188 236 L176 354
+             H155 L151 239 L145 354
+             H124 L112 236 L87 190 Z"
+          fill="#91a8a4"/>
+    <path d="M112 103 L65 210 M188 103 L235 210"
+          stroke="#91a8a4" stroke-width="21"
+          stroke-linecap="round"/>
 
-          <div class="hotspot" data-system="temp" style="left:78px;top:170px">
-            <div class="dot"></div>
-            <div><strong>갑상샘</strong><span>열 생산</span></div>
-          </div>
+    <path id="brain" class="organ"
+          d="M130 40 Q150 22 170 40 Q162 66 130 40"
+          fill="#9d8fff"/>
 
-          <div class="hotspot" data-system="glucose" style="left:308px;top:218px">
-            <div class="dot"></div>
-            <div><strong>간</strong><span>당 저장·방출</span></div>
-          </div>
+    <path id="thyroid" class="organ"
+          d="M143 103 Q150 93 157 103
+             L165 118 L150 126 L135 118 Z"
+          fill="#ffd166"/>
 
-          <div class="hotspot" data-system="glucose" style="left:74px;top:286px">
-            <div class="dot"></div>
-            <div><strong>췌장</strong><span>인슐린·글루카곤</span></div>
-          </div>
+    <path id="liver" class="organ"
+          d="M156 144 Q180 132 198 151
+             Q193 180 160 179 L140 163 Z"
+          fill="#ef7878"/>
 
-          <div class="hotspot" data-system="osm" style="left:278px;top:304px">
-            <div class="dot"></div>
-            <div><strong>콩팥</strong><span>ADH·수분 조절</span></div>
-          </div>
+    <path id="pancreas" class="organ"
+          d="M123 184 Q153 167 178 185
+             Q163 199 123 192 Z"
+          fill="#f4a27d"/>
 
-          <div class="stat-badge" id="gBadge" style="left:34px;top:420px">
-            <span>혈당</span>
-            <strong id="gVal">100 mg/dL</strong>
-            <span class="trend" id="gTrend">→</span>
-          </div>
+    <path id="kidney" class="organ"
+          d="M115 211 Q97 203 97 224
+             Q98 245 115 240 L125 220 Z"
+          fill="#7dbaff"/>
 
-          <div class="stat-badge" id="tBadge" style="left:150px;top:490px">
-            <span>체온</span>
-            <strong id="tVal">36.7 °C</strong>
-            <span class="trend" id="tTrend">→</span>
-          </div>
+    <path id="kidney2" class="organ"
+          d="M185 211 Q203 203 203 224
+             Q202 245 185 240 L175 220 Z"
+          fill="#7dbaff"/>
 
-          <div class="stat-badge" id="oBadge" style="left:280px;top:420px">
-            <span>삼투압</span>
-            <strong id="oVal">290 mOsm</strong>
-            <span class="trend" id="oTrend">→</span>
-          </div>
-        </div>
+    <path d="M143 159 Q150 149 157 159
+             Q170 145 176 159
+             Q179 172 150 192
+             Q121 172 124 159
+             Q130 145 143 159"
+          fill="#ec7070" opacity=".8"/>
+  </svg>
 
-        <div class="body-note" id="bodyNote">
-          깜빡이는 부위가 현재 더 시급한 조절 영역입니다. 먼저 그 부위를 눌러 오른쪽 큰 조절 버튼을 확인해 보세요.
-        </div>
-      </section>
+  <div class="legend">
+    <span>🧠 체온</span>
+    <span>🩸 혈당</span>
+    <span>💧 삼투압</span>
+  </div>
+</section>
 
-      <section class="panel control-panel">
-        <div class="section-top">
-          <div>
-            <h2 id="controlTitle">체온 조절 패널</h2>
-            <p id="controlSub">시상하부·갑상샘·피부 반응을 조절합니다</p>
-          </div>
-          <div class="tag" id="focusTag">정밀 조절 대기</div>
-        </div>
+<section class="panel status">
+  <div class="event">
+    <small style="color:var(--mint)">CURRENT EVENT</small>
+    <h2 id="eventTitle">관제 대기</h2>
+    <p id="eventDesc">게임 시작 후 외부 사건이 발생합니다.</p>
+  </div>
 
-        <div class="event-card" id="eventCard">
-          <span class="event-type" id="eventType">SYSTEM SCAN</span>
-          <div class="event-row">
-            <div class="event-left">
-              <div class="event-icon" id="eventIcon">◎</div>
-              <div class="event-copy">
-                <h3 id="eventTitle">게임 시작 전</h3>
-                <p id="eventDesc">게임이 시작되면 식사, 운동, 추위, 더위, 탈수 같은 사건이 발생합니다.</p>
-              </div>
-            </div>
-            <div class="event-time">
-              <strong id="eventTimer">--</strong>
-              <span id="eventTimerLabel">다음 사건</span>
-            </div>
-          </div>
-          <div class="event-hint" id="eventHint">사건의 방향을 읽고 맞는 기관을 골라 조절해 보세요.</div>
-        </div>
+  <div class="command">
+    <small>🎯 지금 할 일</small>
+    <strong id="command">게임 시작을 눌러주세요</strong>
+    <p id="commandDetail">
+      필요한 버튼에 초록색 추천 표시가 나타납니다.
+    </p>
+  </div>
 
-        <div class="control-grid">
-          <section class="subpanel">
-            <h4>조절 기능</h4>
-            <p class="meta">선택한 기관의 조절 방식이 크게 보입니다. 먼저 미니게임을 성공시키면 다음 조절 효과가 강화됩니다.</p>
-            <div class="overview" id="overview"></div>
-            <div class="organ-tags" id="organTags"></div>
-            <div class="ready-pill" id="readyPill">미니게임 완료 시 다음 조절 강화</div>
-            <div class="actions" id="actions"></div>
-          </section>
+  <div id="stats"></div>
 
-          <section class="subpanel">
-            <h4 id="miniTitle">열 회로 퍼즐</h4>
-            <p class="meta" id="miniMeta">퍼즐을 풀면 다음 체온 조절이 강화됩니다.</p>
-            <div class="mini-wrap" id="miniWrap"></div>
-          </section>
-        </div>
-      </section>
-    </section>
-
-    <section class="bottom-row">
-      <div class="meter-card">
-        <div class="meter-top"><span>시스템 안정도</span><strong id="stLabel">100%</strong></div>
-        <div class="meter"><div id="stBar"></div></div>
-      </div>
-      <div class="meter-card">
-        <div class="meter-top"><span>음성 피드백 부하</span><strong id="fbLabel">0%</strong></div>
-        <div class="meter"><div id="fbBar"></div></div>
-      </div>
-      <div class="boost-box">
-        <strong id="boostLabel">긴급 통합 조절 0%</strong>
-        <span id="boostText">PERFECT와 미니게임 성공으로 충전됩니다</span>
-      </div>
-      <button class="main-btn" id="boostBtn" disabled>긴급 통합 조절 사용</button>
-    </section>
-
-    <div class="message" id="message">설명을 읽고 게임을 시작하세요.</div>
-  </main>
-
-  <div class="lock-banner hidden" id="lockBanner">피드백 셧다운 · 수용체 보호를 위해 잠시 제어 불가</div>
-
-  <section class="overlay" id="intro">
-    <div class="modal">
-      <div class="intro-grid">
-        <div class="intro-visual">
-          <svg viewBox="0 0 340 360" fill="none">
-            <circle cx="170" cy="52" r="32" stroke="#dce7e4" stroke-width="4"/>
-            <path d="M170 86V205M170 126L101 170M170 126L239 170M170 205L130 320M170 205L210 320" stroke="#dce7e4" stroke-width="6" stroke-linecap="round"/>
-            <ellipse cx="170" cy="124" rx="16" ry="10" fill="#2de5bb" opacity=".88"/>
-            <ellipse cx="154" cy="174" rx="30" ry="18" fill="#ff6b6b" opacity=".85"/>
-            <ellipse cx="191" cy="166" rx="36" ry="20" fill="#ffa17e" opacity=".55"/>
-            <ellipse cx="149" cy="196" rx="12" ry="18" fill="#77bbff" opacity=".64"/>
-            <ellipse cx="191" cy="196" rx="12" ry="18" fill="#77bbff" opacity=".64"/>
-            <path d="M48 125H130" stroke="#5b6663" stroke-width="2" stroke-dasharray="5 6"/>
-            <path d="M220 174H300" stroke="#5b6663" stroke-width="2" stroke-dasharray="5 6"/>
-            <path d="M217 196H300" stroke="#5b6663" stroke-width="2" stroke-dasharray="5 6"/>
-            <text x="12" y="129" fill="#a6b1ae" font-size="13">체온 조절</text>
-            <text x="286" y="178" fill="#a6b1ae" font-size="13">혈당 조절</text>
-            <text x="279" y="200" fill="#a6b1ae" font-size="13">수분 조절</text>
-          </svg>
-        </div>
-
-        <div>
-          <div class="kicker">BODY CONTROL EDITION</div>
-          <h2>몸의 부위를 직접 눌러<br>항상성을 조절하세요</h2>
-          <p class="lead">
-            이번 버전은 단순한 수치 조절이 아니라, <b>인체를 보면서 부위별로 조절</b>하는 게임입니다.
-            췌장/간은 혈당, 시상하부/갑상샘은 체온, 콩팥은 수분 균형을 담당합니다.
-            미니게임을 성공하면 다음 조절이 더 강하고 더 안전해집니다.
-          </p>
-
-          <div class="features">
-            <div class="feature"><div class="icon">🫀</div><div><strong>인체 시각화</strong><span>지금 어떤 계통을 조절해야 하는지 몸 위에서 바로 확인할 수 있습니다.</span></div></div>
-            <div class="feature"><div class="icon">🎮</div><div><strong>미니게임 추가</strong><span>혈당/수분은 숫자 맞추기, 체온은 퍼즐 회로 맞추기로 더 재미있게 조절합니다.</span></div></div>
-            <div class="feature"><div class="icon">⚡</div><div><strong>흥미 포인트 강화</strong><span>PERFECT 판정, 보스 위기, 긴급 통합 조절 기능으로 긴장감 있게 플레이할 수 있습니다.</span></div></div>
-            <div class="feature"><div class="icon">↺</div><div><strong>항상성 학습</strong><span>호르몬을 과하게 사용하면 음성 피드백 반동과 셧다운이 발생합니다.</span></div></div>
-          </div>
-
-          <button class="main-btn" id="startBtn">게임 시작</button>
-        </div>
-      </div>
+  <div class="mini">
+    <button id="miniToggle">🎲 보너스 숫자 게임 열기</button>
+    <div id="miniContents" class="hidden">
+      <p id="miniTarget"></p>
+      <div id="miniChoices"></div>
+      <p id="miniMessage">두 숫자를 골라 목표 합을 맞추세요.</p>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section class="overlay hidden" id="help">
-    <div class="modal" style="max-width:680px">
-      <div class="kicker">PLAY GUIDE</div>
-      <h2>플레이 방법</h2>
-      <p class="lead">
-        1) 몸의 부위를 눌러 조절 시스템을 선택합니다. 2) 현재 사건과 수치 방향을 확인합니다.
-        3) 원하면 먼저 미니게임을 풀어 다음 조절을 강화한 뒤 큰 조절 버튼을 누릅니다.
-      </p>
-      <div class="features">
-        <div class="feature"><div class="icon">1</div><div><strong>혈당</strong><span>췌장/간을 누릅니다. 식사 후 혈당이 오르면 인슐린, 공복이나 운동으로 떨어지면 글루카곤이 기본입니다.</span></div></div>
-        <div class="feature"><div class="icon">2</div><div><strong>체온</strong><span>시상하부/갑상샘을 누릅니다. 추우면 교감신경/티록신, 더우면 발한이 유리합니다.</span></div></div>
-        <div class="feature"><div class="icon">3</div><div><strong>수분</strong><span>콩팥을 누릅니다. 삼투압이 높아지면 ADH나 수분 보급이 필요합니다.</span></div></div>
-        <div class="feature"><div class="icon">!</div><div><strong>주의</strong><span>한 호르몬을 연속으로 남발하면 피드백 부하가 올라가고 셧다운이 발생합니다.</span></div></div>
-      </div>
-      <button class="main-btn" id="closeHelpBtn">닫기</button>
+</div>
+
+<section class="panel controls">
+  <h2>호르몬·신경 조절판</h2>
+  <p class="hint">모든 버튼이 보입니다. 누른 버튼은 초록색으로 바뀝니다.</p>
+  <div class="control-grid" id="buttons"></div>
+</section>
+
+<section class="panel footer">
+  <div>
+    <div class="meter-label">
+      <span>안정도</span><strong id="stability2">100%</strong>
     </div>
-  </section>
+    <div class="meter"><div id="stabilityBar"></div></div>
+  </div>
 
-  <section class="overlay hidden" id="result">
-    <div class="modal" style="max-width:640px">
-      <div class="kicker">MISSION REPORT</div>
-      <h2 id="resultTitle">임무 완료</h2>
-      <p class="lead" id="resultText"></p>
-
-      <div class="result-grid">
-        <div class="result-card"><span>점수</span><strong id="rScore">0</strong></div>
-        <div class="result-card"><span>안전 유지율</span><strong id="rSafe">0%</strong></div>
-        <div class="result-card"><span>PERFECT</span><strong id="rPerfect">0</strong></div>
-        <div class="result-card"><span>셧다운</span><strong id="rShutdown">0</strong></div>
-      </div>
-
-      <div class="lesson" id="lesson"></div>
-      <button class="main-btn" id="restartBtn">다시 시작</button>
+  <div>
+    <div class="meter-label">
+      <span>피드백 부하</span><strong id="load">0%</strong>
     </div>
-  </section>
-
-  <script>
-    const $ = (id) => document.getElementById(id);
-    const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
-    const rand = (min, max) => Math.random() * (max - min) + min;
-    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-
-    const LIMITS = {
-      glucose: {safeMin:70, safeMax:130, setpoint:100, dangerMin:40, dangerMax:200},
-      temp:    {safeMin:36.0, safeMax:37.5, setpoint:36.7, dangerMin:34.0, dangerMax:40.0},
-      osm:     {safeMin:280, safeMax:300, setpoint:290, dangerMin:260, dangerMax:330}
-    };
-
-    const SYSTEMS = {
-      glucose: {
-        title:"혈당 조절 패널",
-        sub:"췌장·간이 혈당을 올리고 내립니다",
-        overview:"췌장은 인슐린과 글루카곤을 분비하고, 간은 포도당을 저장하거나 방출합니다. 식사 후 혈당이 오르면 인슐린, 공복이나 운동으로 혈당이 떨어지면 글루카곤이 기본입니다.",
-        organs:["췌장","간","혈액"],
-        miniTitle:"당 조절 숫자 게임",
-        miniMeta:"숫자 두 개를 골라 목표 합을 만들면 다음 혈당 조절이 강화됩니다."
-      },
-      temp: {
-        title:"체온 조절 패널",
-        sub:"시상하부·갑상샘·피부가 열을 만들고 내보냅니다",
-        overview:"시상하부는 체온의 기준점을 감지하고, 갑상샘과 교감신경은 열 생산을 늘리며, 피부의 발한은 열을 낮춥니다. 추우면 열 생산, 더우면 열 배출이 핵심입니다.",
-        organs:["시상하부","갑상샘","피부"],
-        miniTitle:"열 회로 퍼즐",
-        miniMeta:"타일을 돌려 열이 왼쪽 불꽃에서 오른쪽 체온계로 이어지게 만드세요."
-      },
-      osm: {
-        title:"수분·삼투압 조절 패널",
-        sub:"콩팥이 ADH와 수분 재흡수로 삼투압을 조절합니다",
-        overview:"콩팥은 ADH의 영향을 받아 수분을 재흡수합니다. 삼투압이 높아지면 ADH나 수분 보급이 필요하고, 너무 많이 낮추면 저삼투압 반동이 생길 수 있습니다.",
-        organs:["콩팥","체액","갈증중추"],
-        miniTitle:"물방울 숫자 게임",
-        miniMeta:"숫자 두 개를 골라 목표 합을 만들면 다음 수분 조절이 강화됩니다."
-      }
-    };
-
-    const ACTIONS = {
-      insulin: {
-        system:"glucose", label:"인슐린", effect:"혈당 ↓", detail:"혈당을 낮춤", side:"과하면 저혈당 반동",
-        duration:4.2, feedback:11,
-        rates:{glucose:-4.5},
-        rebound:{glucose:0.9},
-        good:(s)=> s.glucose > 112 || (s.event && s.event.rates.glucose > 0.6)
-      },
-      glucagon: {
-        system:"glucose", label:"글루카곤", effect:"혈당 ↑", detail:"간에서 포도당 방출", side:"과하면 고혈당 반동",
-        duration:4.2, feedback:11,
-        rates:{glucose:4.2},
-        rebound:{glucose:-0.8},
-        good:(s)=> s.glucose < 88 || (s.event && s.event.rates.glucose < -0.6)
-      },
-      sympathetic: {
-        system:"temp", label:"교감신경 자극", effect:"체온 ↑", detail:"빠른 열 생산", side:"피드백 부하 큼",
-        duration:4.2, feedback:14,
-        rates:{temp:0.13, glucose:0.9, osm:0.1},
-        rebound:{temp:-0.03, glucose:-0.2},
-        good:(s)=> s.temp < 36.35 || (s.event && s.event.rates.temp < -0.03)
-      },
-      thyroxine: {
-        system:"temp", label:"티록신", effect:"체온 ↑", detail:"느리지만 오래감", side:"혈당 소모",
-        duration:6.8, feedback:12,
-        rates:{temp:0.06, glucose:-0.25},
-        rebound:{temp:-0.02},
-        good:(s)=> s.temp < 36.3 || (s.event && s.event.rates.temp < -0.04)
-      },
-      sweat: {
-        system:"temp", label:"발한", effect:"체온 ↓", detail:"열 배출", side:"수분 손실 증가",
-        duration:4.0, feedback:12,
-        rates:{temp:-0.15, osm:0.55},
-        rebound:{temp:0.03},
-        good:(s)=> s.temp > 37.1 || (s.event && s.event.rates.temp > 0.035)
-      },
-      adh: {
-        system:"osm", label:"ADH", effect:"삼투압 ↓", detail:"수분 재흡수", side:"반동 주의",
-        duration:5.0, feedback:10,
-        rates:{osm:-1.1},
-        rebound:{osm:0.4},
-        good:(s)=> s.osm > 295 || (s.event && s.event.rates.osm > 0.25)
-      },
-      water: {
-        system:"osm", label:"수분 보급", effect:"삼투압 ↓↓", detail:"빠르게 낮춤", side:"과하면 저삼투압",
-        duration:2.5, feedback:9,
-        rates:{osm:-2.2, temp:-0.02},
-        rebound:{osm:0.45},
-        good:(s)=> s.osm > 298 || (s.event && s.event.rates.osm > 0.35)
-      }
-    };
-
-    const LAYOUT = {
-      glucose:["insulin","glucagon"],
-      temp:["sympathetic","thyroxine","sweat"],
-      osm:["adh","water"]
-    };
-
-    const EVENTS = [
-      {icon:"🍚", title:"고탄수화물 식사", desc:"포도당 흡수로 혈당이 상승합니다.", hint:"췌장/간 쪽을 확인하세요.", duration:10, rates:{glucose:2.5}, focus:"glucose"},
-      {icon:"🏃", title:"격렬한 운동", desc:"혈당은 떨어지고 체온과 삼투압은 올라갑니다.", hint:"체온과 수분도 같이 봐야 합니다.", duration:10, rates:{glucose:-1.2, temp:0.08, osm:0.5}, focus:"temp"},
-      {icon:"❄️", title:"한랭 노출", desc:"열 손실이 커지며 체온이 내려갑니다.", hint:"시상하부와 갑상샘을 준비하세요.", duration:10, rates:{temp:-0.11, glucose:-0.1}, focus:"temp"},
-      {icon:"☀️", title:"고온 환경", desc:"체온 상승과 수분 손실이 동시에 일어납니다.", hint:"발한과 수분 조절을 고민하세요.", duration:10, rates:{temp:0.11, osm:0.45}, focus:"temp"},
-      {icon:"🏜️", title:"수분 부족", desc:"체수분 감소로 삼투압이 상승합니다.", hint:"콩팥과 수분 패널을 보세요.", duration:10, rates:{osm:0.82}, focus:"osm"},
-      {icon:"⌛", title:"장시간 공복", desc:"외부 포도당 공급이 줄어 혈당이 떨어집니다.", hint:"글루카곤 타이밍이 중요합니다.", duration:9, rates:{glucose:-1.7}, focus:"glucose"},
-      {icon:"🧂", title:"고염분 식사", desc:"혈장 용질 농도가 높아져 삼투압이 상승합니다.", hint:"물만 너무 급하게 주면 반동이 옵니다.", duration:8, rates:{osm:0.95}, focus:"osm"},
-      {icon:"📚", title:"시험 스트레스", desc:"스트레스로 혈당과 체온이 함께 오릅니다.", hint:"혈당과 체온을 같이 보세요.", duration:9, rates:{glucose:1.3, temp:0.04}, focus:"glucose"}
-    ];
-
-    const BOSSES = [
-      {icon:"⚡", title:"BOSS · 에너지드링크 + 시험", desc:"혈당, 체온, 삼투압이 동시에 상승합니다.", hint:"가장 빨리 치솟는 수치부터 잡으세요!", duration:12, rates:{glucose:2.3, temp:0.06, osm:0.35}, focus:"glucose"},
-      {icon:"🔥", title:"BOSS · 한여름 운동장", desc:"혈당은 떨어지고 체온·삼투압은 급상승합니다.", hint:"발한과 수분 조절의 순서를 잘 생각하세요.", duration:13, rates:{glucose:-1.45, temp:0.12, osm:0.72}, focus:"temp"}
-    ];
-
-    let timer = null;
-    let helpWasPaused = false;
-
-    function newState(){
-      return {
-        running:false,
-        paused:false,
-        total:95,
-        time:95,
-        elapsed:0,
-        selected:"temp",
-        glucose:100,
-        temp:36.7,
-        osm:290,
-        trend:{glucose:0,temp:0,osm:0},
-        stability:100,
-        feedback:0,
-        boost:0,
-        boostOn:0,
-        score:0,
-        combo:0,
-        comboTimer:0,
-        safeTime:0,
-        perfect:0,
-        shutdown:0,
-        effects:[],
-        rebounds:[],
-        event:null,
-        nextEvent:5,
-        bossIndex:0,
-        lock:0,
-        axisStress:{glucose:0,temp:0,osm:0},
-        focusReady:{glucose:false,temp:false,osm:false},
-        mini:{
-          glucose:{target:10, nums:[], selected:[], solved:0},
-          osm:{target:9, nums:[], selected:[], solved:0},
-          temp:{tiles:[0,1,2,3], solved:0}
-        }
-      }
-    }
-
-    let S = newState();
-
-    function setupNumberMini(system){
-      const target = Math.floor(rand(9,13));
-      const values = [1,2,3,4,5,6,7,8];
-      const validA = values.filter(v => target - v >= 1 && target - v <= 8);
-      const a = pick(validA);
-      const b = target - a;
-      let nums = [a,b,pick(values),pick(values),pick(values),pick(values)];
-      nums = nums.sort(()=>Math.random()-0.5);
-      S.mini[system].target = target;
-      S.mini[system].nums = nums;
-      S.mini[system].selected = [];
-    }
-
-    function setupTempMini(){
-      S.mini.temp.tiles = [
-        Math.floor(rand(0,4)),
-        Math.floor(rand(0,4)),
-        Math.floor(rand(0,4)),
-        Math.floor(rand(0,4))
-      ];
-      while(isTempSolved()){
-        S.mini.temp.tiles = [
-          Math.floor(rand(0,4)),
-          Math.floor(rand(0,4)),
-          Math.floor(rand(0,4)),
-          Math.floor(rand(0,4))
-        ];
-      }
-    }
-
-    function initMinis(){
-      setupNumberMini("glucose");
-      setupNumberMini("osm");
-      setupTempMini();
-    }
-
-    function formatTime(sec){
-      sec = Math.max(0, Math.ceil(sec));
-      const m = Math.floor(sec/60);
-      const s = sec%60;
-      return String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
-    }
-
-    function comboMul(){
-      return 1 + Math.min(S.combo,8)*0.18;
-    }
-
-    function safe(key){
-      return S[key] >= LIMITS[key].safeMin && S[key] <= LIMITS[key].safeMax;
-    }
-
-    function deviation(key){
-      const v = S[key], L = LIMITS[key];
-      const scale = key==="glucose" ? 25 : key==="temp" ? 0.75 : 12;
-      if(v < L.safeMin) return (L.safeMin - v)/scale;
-      if(v > L.safeMax) return (v - L.safeMax)/scale;
-      return 0;
-    }
-
-    function isDead(){
-      return (
-        S.glucose <= LIMITS.glucose.dangerMin || S.glucose >= LIMITS.glucose.dangerMax ||
-        S.temp <= LIMITS.temp.dangerMin || S.temp >= LIMITS.temp.dangerMax ||
-        S.osm <= LIMITS.osm.dangerMin || S.osm >= LIMITS.osm.dangerMax ||
-        S.stability <= 0
-      );
-    }
-
-    function urgentSystem(){
-      const score = {
-        glucose: deviation("glucose"),
-        temp: deviation("temp"),
-        osm: deviation("osm")
-      };
-      if(S.event) score[S.event.focus] += S.event.boss ? 1.5 : 0.6;
-      const best = Object.entries(score).sort((a,b)=>b[1]-a[1])[0][0];
-      return best;
-    }
-
-    function setMessage(text,type=""){
-      const box = $("message");
-      box.textContent = text;
-      box.className = "message " + type;
-    }
-
-    function stageName(){
-      if(S.elapsed < 30) return "CALM";
-      if(S.elapsed < 67) return "SURGE";
-      return "FINAL";
-    }
-
-    function addRates(base, extra){
-      if(extra.glucose) base.glucose += extra.glucose;
-      if(extra.temp) base.temp += extra.temp;
-      if(extra.osm) base.osm += extra.osm;
-    }
-
-    function scaleRates(obj, scale){
-      return {
-        glucose:(obj.glucose||0)*scale,
-        temp:(obj.temp||0)*scale,
-        osm:(obj.osm||0)*scale
-      };
-    }
-
-    function update(dt){
-      if(!S.running || S.paused) return;
-
-      S.elapsed += dt;
-      S.time = Math.max(0, S.time - dt);
-
-      if(S.comboTimer > 0){
-        S.comboTimer -= dt;
-        if(S.comboTimer <= 0) S.combo = 0;
-      }
-
-      if(S.boostOn > 0) S.boostOn -= dt;
-
-      if(S.lock > 0){
-        S.lock -= dt;
-        if(S.lock <= 0){
-          $("lockBanner").classList.add("hidden");
-          setMessage("수용체가 회복되어 제어권이 돌아왔습니다.","good");
-        }
-      }
-
-      updateEvent(dt);
-      updateEffects(dt);
-
-      const prev = {glucose:S.glucose,temp:S.temp,osm:S.osm};
-
-      const rates = {
-        glucose:(LIMITS.glucose.setpoint - S.glucose)*0.017 + Math.sin(S.elapsed*.8)*0.02,
-        temp:(LIMITS.temp.setpoint - S.temp)*0.025 + Math.sin(S.elapsed*.6)*0.0007,
-        osm:(LIMITS.osm.setpoint - S.osm)*0.017 + Math.sin(S.elapsed*.75)*0.01
-      };
-
-      if(S.event) addRates(rates, scaleRates(S.event.rates, S.boostOn>0 ? .74 : 1));
-      S.effects.forEach(e => addRates(rates, e.rates));
-      S.rebounds.forEach(e => { if(e.delay <= 0) addRates(rates, e.rates); });
-
-      S.glucose = clamp(S.glucose + rates.glucose*dt, 20, 240);
-      S.temp = clamp(S.temp + rates.temp*dt, 32, 42);
-      S.osm = clamp(S.osm + rates.osm*dt, 240, 350);
-
-      S.trend.glucose = (S.glucose - prev.glucose) / Math.max(dt,.001);
-      S.trend.temp = (S.temp - prev.temp) / Math.max(dt,.001);
-      S.trend.osm = (S.osm - prev.osm) / Math.max(dt,.001);
-
-      S.feedback = Math.max(0, S.feedback - 1.7*dt);
-
-      if(safe("glucose") && safe("temp") && safe("osm")){
-        S.safeTime += dt;
-        S.stability = Math.min(100, S.stability + 0.22*dt);
-        S.score += 8 * comboMul() * dt;
-      }else{
-        S.stability = Math.max(0, S.stability - (deviation("glucose")*2.25 + deviation("temp")*4.3 + deviation("osm")*2.45) * dt);
-      }
-
-      S.axisStress.glucose += deviation("glucose") * dt;
-      S.axisStress.temp += deviation("temp") * dt;
-      S.axisStress.osm += deviation("osm") * dt;
-
-      if(S.feedback > 70){
-        S.stability = Math.max(0, S.stability - (S.feedback - 70)*0.014*dt);
-      }
-
-      if(S.feedback >= 92 && S.lock <= 0){
-        triggerShutdown();
-      }
-
-      if(isDead()){
-        finish(false,"생체 수치가 치명적 범위에 도달했습니다.");
-        return;
-      }
-
-      if(S.time <= 0){
-        finish(true,"최종 시간까지 항상성을 유지했습니다.");
-        return;
-      }
-
-      render();
-    }
-
-    function updateEffects(dt){
-      S.effects.forEach(e => e.remaining -= dt);
-      S.effects = S.effects.filter(e => e.remaining > 0);
-
-      S.rebounds.forEach(e => {
-        e.delay -= dt;
-        if(e.delay <= 0) e.remaining -= dt;
-      });
-      S.rebounds = S.rebounds.filter(e => e.remaining > 0);
-    }
-
-    function updateEvent(dt){
-      if(S.event){
-        S.event.remaining -= dt;
-        if(S.event.remaining <= 0){
-          if(S.event.boss){
-            S.score += 500;
-            S.combo += 2;
-            S.comboTimer = 8;
-            S.boost = clamp(S.boost + 20, 0, 100);
-            setMessage("보스 위기를 극복했습니다!","good");
-          }else{
-            setMessage(S.event.title + " 영향 종료","good");
-          }
-          S.event = null;
-          S.nextEvent = rand(5.5,8.5);
-        }
-        return;
-      }
-
-      if(S.elapsed > 28 && S.bossIndex === 0){
-        S.event = {...BOSSES[0], remaining:BOSSES[0].duration, boss:true};
-        S.selected = S.event.focus;
-        setMessage("BOSS 위기 발생! 여러 수치를 동시에 봐야 합니다.","warn");
-        return;
-      }
-      if(S.elapsed > 63 && S.bossIndex === 0){
-        S.bossIndex = 1; // already used first
-      }
-      if(S.elapsed > 66 && S.bossIndex === 1){
-        S.event = {...BOSSES[1], remaining:BOSSES[1].duration, boss:true};
-        S.selected = S.event.focus;
-        S.bossIndex = 2;
-        setMessage("두 번째 BOSS 위기 발생!","warn");
-        return;
-      }
-
-      S.nextEvent -= dt;
-      if(S.nextEvent <= 0){
-        const ev = pick(EVENTS);
-        S.event = {...ev, remaining:ev.duration, boss:false};
-        S.selected = ev.focus;
-        setMessage(ev.title + " 발생: " + ev.desc,"warn");
-      }
-    }
-
-    function triggerShutdown(){
-      S.lock = 3.2;
-      S.shutdown += 1;
-      S.feedback = 66;
-      S.combo = 0;
-      S.comboTimer = 0;
-      S.stability = Math.max(0, S.stability - 11);
-      $("lockBanner").classList.remove("hidden");
-      setMessage("음성 피드백 과부하! 수용체가 잠시 신호를 차단했습니다.","bad");
-      render();
-    }
-
-    function useAction(key){
-      if(!S.running || S.paused || S.lock > 0) return;
-      const a = ACTIONS[key];
-      const focused = S.focusReady[a.system];
-      const good = a.good(S);
-      const perfect = good && S.event && S.event.focus === a.system && S.event.remaining > S.event.duration - 4;
-
-      const scale = focused ? 1.45 : 1;
-      const reduce = focused ? 0.76 : 1;
-
-      S.effects.push({
-        remaining:a.duration,
-        rates:scaleRates(a.rates, scale)
-      });
-      S.rebounds.push({
-        delay:a.duration + 0.45,
-        remaining:3.6,
-        rates:scaleRates(a.rebound, focused ? 0.8 : 1)
-      });
-
-      S.feedback = clamp(S.feedback + a.feedback*reduce + (good?0:8), 0, 105);
-
-      S.score += good ? (perfect ? 220 : 95) * comboMul() : -45;
-      if(good){
-        S.combo += perfect ? 2 : 1;
-        S.comboTimer = 8;
-        S.boost = clamp(S.boost + (perfect ? 18 : 8), 0, 100);
-        if(perfect){
-          S.perfect += 1;
-          setMessage("PERFECT! 사건의 변화를 정확히 상쇄했습니다.","good");
-        }else{
-          setMessage(a.label + " 조절이 현재 변화 방향에 적절합니다.","good");
-        }
-      }else{
-        S.combo = 0;
-        S.comboTimer = 0;
-        S.stability = Math.max(0, S.stability - 2.8);
-        setMessage(a.label + "은(는) 현재 수치에 맞지 않습니다.","bad");
-      }
-
-      if(focused){
-        S.focusReady[a.system] = false;
-        if(a.system === "glucose") setupNumberMini("glucose");
-        if(a.system === "osm") setupNumberMini("osm");
-        if(a.system === "temp") setupTempMini();
-      }
-
-      render();
-    }
-
-    function activateBoost(){
-      if(!S.running || S.paused || S.lock > 0 || S.boost < 100) return;
-      S.boost = 0;
-      S.boostOn = 7;
-      S.feedback = Math.max(0, S.feedback - 36);
-      S.stability = Math.min(100, S.stability + 9);
-      S.glucose += (LIMITS.glucose.setpoint - S.glucose) * 0.42;
-      S.temp += (LIMITS.temp.setpoint - S.temp) * 0.42;
-      S.osm += (LIMITS.osm.setpoint - S.osm) * 0.42;
-      S.score += 180;
-      S.combo += 1;
-      S.comboTimer = 8;
-      setMessage("긴급 통합 조절! 모든 수치를 기준점 방향으로 보정합니다.","good");
-      render();
-    }
-
-    function selectSystem(system){
-      S.selected = system;
-      render();
-    }
-
-    function trendArrow(v,key){
-      const th = key==="temp" ? 0.006 : 0.08;
-      if(v > th) return "↑";
-      if(v < -th) return "↓";
-      return "→";
-    }
-
-    function updateBadge(id, value, trend, key){
-      $(id).classList.remove("warning","danger");
-      $(value.id).textContent = value.text;
-      $(trend.id).textContent = trend.text;
-      const v = S[key], L = LIMITS[key];
-      if(v <= L.dangerMin || v >= L.dangerMax) $(id).classList.add("danger");
-      else if(v < L.safeMin || v > L.safeMax) $(id).classList.add("warning");
-    }
-
-    function render(){
-      $("timeVal").textContent = formatTime(S.time);
-      $("scoreVal").textContent = Math.round(S.score).toLocaleString();
-      $("comboVal").textContent = "×" + comboMul().toFixed(1);
-      $("stabilityVal").textContent = Math.round(S.stability) + "%";
-      $("feedbackVal").textContent = Math.round(S.feedback) + "%";
-      $("stageVal").textContent = stageName();
-      $("stLabel").textContent = Math.round(S.stability) + "%";
-      $("fbLabel").textContent = Math.round(S.feedback) + "%";
-      $("stBar").style.width = S.stability + "%";
-      $("fbBar").style.width = Math.min(100,S.feedback) + "%";
-      $("fbBar").style.background = S.feedback > 75 ? "var(--red)" : S.feedback > 48 ? "var(--yellow)" : "var(--mint)";
-      $("boostLabel").textContent = "긴급 통합 조절 " + Math.floor(S.boost) + "%";
-      $("boostText").textContent = S.boost >= 100 ? "사용 가능" : "PERFECT와 미니게임 성공으로 충전됩니다";
-      $("boostBtn").disabled = !S.running || S.paused || S.lock > 0 || S.boost < 100;
-
-      $("selectedTag").textContent = "선택: " + (S.selected==="glucose" ? "혈당 조절" : S.selected==="temp" ? "체온 조절" : "수분 조절");
-
-      updateStatArea();
-      renderControlPanel();
-      renderEvent();
-      renderHotspots();
-      $("pauseBtn").textContent = S.paused ? "계속하기" : "일시정지";
-    }
-
-    function updateStatArea(){
-      $("gVal").textContent = Math.round(S.glucose) + " mg/dL";
-      $("tVal").textContent = S.temp.toFixed(1) + " °C";
-      $("oVal").textContent = Math.round(S.osm) + " mOsm";
-      $("gTrend").textContent = trendArrow(S.trend.glucose,"glucose");
-      $("tTrend").textContent = trendArrow(S.trend.temp,"temp");
-      $("oTrend").textContent = trendArrow(S.trend.osm,"osm");
-
-      ["gBadge","tBadge","oBadge"].forEach(id => $(id).classList.remove("warning","danger"));
-      if(S.glucose <= LIMITS.glucose.dangerMin || S.glucose >= LIMITS.glucose.dangerMax) $("gBadge").classList.add("danger");
-      else if(!safe("glucose")) $("gBadge").classList.add("warning");
-
-      if(S.temp <= LIMITS.temp.dangerMin || S.temp >= LIMITS.temp.dangerMax) $("tBadge").classList.add("danger");
-      else if(!safe("temp")) $("tBadge").classList.add("warning");
-
-      if(S.osm <= LIMITS.osm.dangerMin || S.osm >= LIMITS.osm.dangerMax) $("oBadge").classList.add("danger");
-      else if(!safe("osm")) $("oBadge").classList.add("warning");
-
-      const urgent = urgentSystem();
-      $("bodyNote").textContent = "현재 가장 시급한 조절 후보는 " + (urgent==="glucose" ? "혈당 조절" : urgent==="temp" ? "체온 조절" : "수분 조절") + "입니다. 해당 부위를 눌러 큰 버튼과 미니게임을 확인하세요.";
-    }
-
-    function renderHotspots(){
-      const urgent = urgentSystem();
-      document.querySelectorAll(".hotspot").forEach(el => {
-        const sys = el.dataset.system;
-        el.classList.toggle("selected", sys === S.selected);
-        el.classList.toggle("urgent", sys === urgent);
-      });
-    }
-
-    function renderEvent(){
-      const card = $("eventCard");
-      card.classList.remove("boss");
-
-      if(S.event){
-        if(S.event.boss) card.classList.add("boss");
-        $("eventType").textContent = S.event.boss ? "BOSS CRISIS" : "ACTIVE EVENT";
-        $("eventIcon").textContent = S.event.icon;
-        $("eventTitle").textContent = S.event.title;
-        $("eventDesc").textContent = S.event.desc;
-        $("eventTimer").textContent = Math.ceil(S.event.remaining) + "초";
-        $("eventTimerLabel").textContent = "영향 지속";
-        $("eventHint").textContent = S.event.hint;
-      }else{
-        $("eventType").textContent = "SYSTEM SCAN";
-        $("eventIcon").textContent = "◎";
-        $("eventTitle").textContent = "다음 사건 분석 중";
-        $("eventDesc").textContent = "수치가 어느 방향으로 움직이는지 먼저 읽고, 필요한 경우에만 조절하세요.";
-        $("eventTimer").textContent = Math.ceil(S.nextEvent) + "초";
-        $("eventTimerLabel").textContent = "다음 사건";
-        $("eventHint").textContent = "몸에서 깜빡이는 부위를 누르면 관련 조절기가 더 크게 보입니다.";
-      }
-    }
-
-    function renderControlPanel(){
-      const meta = SYSTEMS[S.selected];
-      $("controlTitle").textContent = meta.title;
-      $("controlSub").textContent = meta.sub;
-      $("overview").textContent = meta.overview;
-      $("miniTitle").textContent = meta.miniTitle;
-      $("miniMeta").textContent = meta.miniMeta;
-      $("organTags").innerHTML = meta.organs.map(v => `<span>${v}</span>`).join("");
-
-      const ready = S.focusReady[S.selected];
-      $("focusTag").textContent = ready ? "정밀 조절 준비됨" : "정밀 조절 대기";
-      $("readyPill").classList.toggle("ready", ready);
-      $("readyPill").textContent = ready ? "정밀 조절 READY · 다음 조절 강화" : "미니게임 완료 시 다음 조절 강화";
-
-      $("actions").innerHTML = LAYOUT[S.selected].map((key, idx) => {
-        const a = ACTIONS[key];
-        return `
-          <button class="action-btn" data-action="${key}" ${(!S.running || S.paused || S.lock>0) ? "disabled" : ""}>
-            <span class="keyhint">${idx+1}</span>
-            <strong>${a.label}</strong>
-            <span>${a.effect}${ready ? " · 정밀 강화" : ""}</span>
-            <em>${a.detail} · 부작용: ${a.side}</em>
-          </button>
-        `;
-      }).join("");
-
-      document.querySelectorAll(".action-btn").forEach(btn => {
-        btn.addEventListener("click", () => useAction(btn.dataset.action));
-      });
-
-      renderMini();
-    }
-
-    function renderMini(){
-      if(S.selected === "temp"){
-        $("miniWrap").innerHTML = `
-          <div class="mini-header">
-            <div><strong>열 흐름 연결</strong><span> · 타일을 눌러 회전</span></div>
-            <button class="chip-btn" id="rerollTemp" ${(!S.running || S.paused || S.focusReady.temp) ? "disabled" : ""}>다시 섞기</button>
-          </div>
-          <div class="pipe-row">
-            <div class="pipe-end">🔥</div>
-            ${S.mini.temp.tiles.map((t,i)=>`<button class="mini-tile curve-${t} ${S.focusReady.temp ? "on" : ""}" data-tile="${i}" ${(!S.running || S.paused || S.focusReady.temp) ? "disabled" : ""}></button>`).join("")}
-            <div class="pipe-end">🌡️</div>
-          </div>
-          <div class="mini-status ${S.focusReady.temp ? "good" : ""}">
-            ${S.focusReady.temp ? "회로 연결 성공! 다음 체온 조절이 강화됩니다." : "불꽃에서 체온계까지 열 흐름이 이어지게 만들어 보세요."}
-          </div>
-        `;
-        document.querySelectorAll("[data-tile]").forEach(btn => {
-          btn.addEventListener("click", () => rotateTile(Number(btn.dataset.tile)));
-        });
-        const rt = $("rerollTemp");
-        if(rt) rt.onclick = () => { setupTempMini(); renderMini(); };
-      }else{
-        const M = S.mini[S.selected];
-        $("miniWrap").innerHTML = `
-          <div class="mini-header">
-            <div><strong>${S.selected==="glucose" ? "혈당 계산기" : "수분 계산기"}</strong><span> · 숫자 두 개를 골라 목표 합 만들기</span></div>
-            <button class="chip-btn" id="rerollNum" ${(!S.running || S.paused || S.focusReady[S.selected]) ? "disabled" : ""}>새 문제</button>
-          </div>
-          <div class="number-target">
-            목표 합 <span class="target-badge">${M.target}</span>
-            <span>숫자 두 개를 골라 맞추면 다음 조절이 강화됩니다.</span>
-          </div>
-          <div class="chips">
-            ${M.nums.map((v,i)=>`<button class="mini-chip ${M.selected.includes(i) ? "active" : ""}" data-chip="${i}" ${(!S.running || S.paused || S.focusReady[S.selected]) ? "disabled" : ""}>${v}</button>`).join("")}
-          </div>
-          <div class="mini-status ${S.focusReady[S.selected] ? "good" : ""}">
-            ${S.focusReady[S.selected] ? "성공! 다음 조절이 정밀 강화됩니다." : "현재 선택: " + (M.selected.map(i => M.nums[i]).join(" + ") || "없음")}
-          </div>
-        `;
-        document.querySelectorAll("[data-chip]").forEach(btn => {
-          btn.addEventListener("click", () => chooseNumber(Number(btn.dataset.chip)));
-        });
-        const rn = $("rerollNum");
-        if(rn) rn.onclick = () => {
-          setupNumberMini(S.selected);
-          renderMini();
-        };
-      }
-    }
-
-    function chooseNumber(index){
-      const sys = S.selected;
-      const M = S.mini[sys];
-      if(S.focusReady[sys] || !S.running || S.paused) return;
-      const pos = M.selected.indexOf(index);
-      if(pos >= 0){
-        M.selected.splice(pos,1);
-      }else{
-        if(M.selected.length >= 2) M.selected.shift();
-        M.selected.push(index);
-      }
-
-      if(M.selected.length === 2){
-        const sum = M.selected.reduce((acc,i)=>acc + M.nums[i],0);
-        if(sum === M.target){
-          S.focusReady[sys] = true;
-          M.solved += 1;
-          S.score += 90;
-          S.boost = clamp(S.boost + 6, 0, 100);
-          setMessage((sys==="glucose" ? "혈당" : "수분") + " 미니게임 성공! 다음 조절이 강화됩니다.","good");
-        }else{
-          setMessage("합이 맞지 않습니다. 다시 선택해 보세요.","warn");
-          setTimeout(()=>{
-            M.selected = [];
-            renderMini();
-          },300);
-        }
-      }
-      render();
-    }
-
-    function rotateTile(index){
-      if(S.focusReady.temp || !S.running || S.paused) return;
-      S.mini.temp.tiles[index] = (S.mini.temp.tiles[index] + 1) % 4;
-      if(isTempSolved()){
-        S.focusReady.temp = true;
-        S.mini.temp.solved += 1;
-        S.score += 100;
-        S.boost = clamp(S.boost + 7, 0, 100);
-        setMessage("열 회로 연결 성공! 다음 체온 조절이 강화됩니다.","good");
-      }
-      render();
-    }
-
-    function isTempSolved(){
-      const tiles = S.mini.temp.tiles;
-      let enter = "left";
-      const dirs = {
-        0:["left","down"],
-        1:["left","up"],
-        2:["right","up"],
-        3:["right","down"]
-      };
-      for(let i=0;i<tiles.length;i++){
-        const d = dirs[tiles[i]];
-        if(!d.includes(enter)) return false;
-        enter = d.find(x => x !== enter);
-      }
-      return enter === "right";
-    }
-
-    function startGame(){
-      clearInterval(timer);
-      S = newState();
-      initMinis();
-      S.running = true;
-      $("intro").classList.add("hidden");
-      $("result").classList.add("hidden");
-      $("help").classList.add("hidden");
-      $("pauseBtn").disabled = false;
-      $("lockBanner").classList.add("hidden");
-      setMessage("관제 시작. 몸에서 깜빡이는 부위를 눌러 가장 중요한 조절부터 확인하세요.","good");
-      render();
-      timer = setInterval(() => update(0.16), 160);
-    }
-
-    function finish(success, text){
-      clearInterval(timer);
-      S.running = false;
-      $("pauseBtn").disabled = true;
-      $("lockBanner").classList.add("hidden");
-
-      $("resultTitle").textContent = success ? "임무 완료" : "생체 시스템 정지";
-      $("resultText").textContent = text;
-      $("rScore").textContent = Math.round(S.score).toLocaleString();
-      $("rSafe").textContent = ((S.safeTime / Math.max(S.elapsed,1)) * 100).toFixed(1) + "%";
-      $("rPerfect").textContent = S.perfect;
-      $("rShutdown").textContent = S.shutdown;
-
-      const worst = Object.entries(S.axisStress).sort((a,b)=>b[1]-a[1])[0][0];
-      const lesson = {
-        glucose:"혈당 조절이 가장 많이 흔들렸습니다. 인슐린과 글루카곤은 반대 작용을 하므로, 하나의 효과가 남아 있을 때 곧바로 반대 호르몬을 쓰면 진동이 커질 수 있습니다.",
-        temp:"체온 조절이 가장 많이 흔들렸습니다. 교감신경은 빠르게, 티록신은 느리게, 발한은 열을 빼는 방식으로 서로 속도가 달라 타이밍이 중요합니다.",
-        osm:"수분·삼투압 조절이 가장 많이 흔들렸습니다. ADH는 느리고 물 보급은 빠르기 때문에, 상승 속도를 보고 강도를 결정해야 과교정 반동을 줄일 수 있습니다."
-      };
-      $("lesson").innerHTML = "<strong>학습 분석</strong><br>" + lesson[worst];
-      $("result").classList.remove("hidden");
-    }
-
-    function togglePause(){
-      if(!S.running || S.lock > 0) return;
-      S.paused = !S.paused;
-      setMessage(S.paused ? "관제가 일시정지되었습니다." : "관제를 재개합니다.", S.paused ? "warn" : "good");
-      render();
-    }
-
-    function openHelp(){
-      if(S.running && !S.paused){
-        S.paused = true;
-        helpWasPaused = true;
-      }else{
-        helpWasPaused = false;
-      }
-      $("help").classList.remove("hidden");
-    }
-
-    function closeHelp(){
-      $("help").classList.add("hidden");
-      if(helpWasPaused && S.running){
-        S.paused = false;
-        helpWasPaused = false;
-      }
-      render();
-    }
-
-    document.querySelectorAll(".hotspot").forEach(el => {
-      el.addEventListener("click", () => selectSystem(el.dataset.system));
-    });
-
-    $("startBtn").onclick = startGame;
-    $("restartBtn").onclick = startGame;
-    $("pauseBtn").onclick = togglePause;
-    $("helpBtn").onclick = openHelp;
-    $("closeHelpBtn").onclick = closeHelp;
-    $("boostBtn").onclick = activateBoost;
-
-    document.addEventListener("keydown", (e) => {
-      if(e.code === "Space"){
-        e.preventDefault();
-        togglePause();
-      }
-      if(e.key.toLowerCase() === "b") activateBoost();
-    });
-
-    initMinis();
-    render();
-  </script>
-</body>
-</html>
+    <div class="meter"><div id="loadBar"></div></div>
+  </div>
+
+  <button class="boost" id="boost" disabled>
+    긴급 복구 · 충전 0%
+  </button>
+</section>
+
+<div class="message" id="message">
+  게임을 시작하세요.
+</div>
+
+</div>
+
+<div class="overlay" id="intro">
+  <div class="modal">
+    <h1>🧬 SETPOINT</h1>
+    <p>
+      당신은 인체 관제사입니다.
+      식사, 운동, 추위 같은 사건에 대응하여
+      혈당·체온·삼투압을 정상 범위로 유지하세요.
+    </p>
+
+    <div class="steps">
+      ① 현재 사건을 확인하세요.<br>
+      ② <b>초록색 추천 버튼</b>을 누르세요.<br>
+      ③ 버튼 색이 바뀌면 호르몬이 작용 중입니다.<br>
+      ④ 너무 많이 누르면 음성 피드백 반동이 발생합니다.
+    </div>
+
+    <button class="primary" id="start">게임 시작</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="result">
+  <div class="modal">
+    <h1 id="resultTitle">게임 종료</h1>
+    <p id="resultText"></p>
+    <button class="primary" id="restart">다시 시작</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const $ = id => document.getElementById(id);
+const clamp = (x,a,b) => Math.max(a,Math.min(b,x));
+
+const defs = {
+  glucose:{
+    name:"혈당",unit:"mg/dL",
+    min:40,max:200,lo:70,hi:130,target:100
+  },
+  temp:{
+    name:"체온",unit:"°C",
+    min:34,max:40,lo:36,hi:37.5,target:36.7
+  },
+  osm:{
+    name:"삼투압",unit:"mOsm/kg",
+    min:250,max:330,lo:280,hi:300,target:290
+  }
+};
+
+const actions = {
+  insulin:{
+    name:"인슐린",effect:"혈당 ↓",detail:"췌장",
+    axis:"glucose",direction:-1,
+    seconds:4,rate:{glucose:-5}
+  },
+  glucagon:{
+    name:"글루카곤",effect:"혈당 ↑",detail:"췌장·간",
+    axis:"glucose",direction:1,
+    seconds:4,rate:{glucose:5}
+  },
+  sympathetic:{
+    name:"교감신경",effect:"체온 ↑",detail:"열 생산",
+    axis:"temp",direction:1,
+    seconds:4,rate:{temp:.18,glucose:.7}
+  },
+  thyroxine:{
+    name:"티록신",effect:"체온 ↑",detail:"느린 열 생산",
+    axis:"temp",direction:1,
+    seconds:7,rate:{temp:.09,glucose:-.3}
+  },
+  sweat:{
+    name:"발한",effect:"체온 ↓",detail:"수분 손실",
+    axis:"temp",direction:-1,
+    seconds:4,rate:{temp:-.19,osm:.35}
+  },
+  adh:{
+    name:"ADH",effect:"삼투압 ↓",detail:"수분 재흡수",
+    axis:"osm",direction:-1,
+    seconds:5,rate:{osm:-1.5}
+  },
+  water:{
+    name:"수분 보급",effect:"삼투압 ↓↓",detail:"빠른 보충",
+    axis:"osm",direction:-1,
+    seconds:3,rate:{osm:-2.6}
+  }
+};
+
+const events = [
+  {
+    title:"🍚 식사",
+    desc:"혈당이 올라갑니다.",
+    rates:{glucose:3.1},
+    recommended:"insulin"
+  },
+  {
+    title:"⌛ 공복",
+    desc:"혈당이 내려갑니다.",
+    rates:{glucose:-2.8},
+    recommended:"glucagon"
+  },
+  {
+    title:"❄️ 추위",
+    desc:"체온이 내려갑니다.",
+    rates:{temp:-.17},
+    recommended:"sympathetic"
+  },
+  {
+    title:"
